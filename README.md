@@ -1,73 +1,93 @@
-# Electronic_model_building
-- The program is created to build a backend for electronic models.
-- main.py: YOU can run this file to test basic functionality of this program.
+# ElectricPowerSystem
+
+
+
+## Getting started
+
+To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+
+Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+
+## Add your files
+
+- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
+- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+
 ```
-python3 main.py
-```
-- Test flows:
-Now you must guarantee you are in the current working directory. And then you can run these commands.
-```
-cd Test
-python3 test_main.py
-```
-If you want to run specific single unit test, you can run the following commands.
-```
-cd Test/unit
-python3 test_Math.py
+cd existing_repo
+git remote add origin https://gitlab.hk/eee/ElectricPowerSystem.git
+git branch -M main
+git push -uf origin main
 ```
 
-- The program structure is displayed as follows：
-## Data
-The Data which contains the parameters for the model is stored in this directory, mainly including:
-- Tower
-- Span
-- Cable
-- Lump
+## Integrate with your tools
 
-These data will be initialized in the Dirver Directory. Now they are Excel tables which is friendly to look through. They will be replaced by XML files or Json files later which are suitable for reading when used by Web applications.
+- [ ] [Set up project integrations](https://gitlab.hk/eee/ElectricPowerSystem/-/settings/integrations)
 
-## Driver
-This directory contains all the actions and flows of modeling and calculating.
-- 1. Initialize the model by reading parameters from Data directory. (Input_Tower1.xlsx/Input_Cable1.xlsx/Input_Span1.xlsx/Lump.xlsx/...)
-- 2. Update the model matrix by describing the flows of the modeling.(Tower/Cable/OHL/Lightning)
-- 3. Merge the model matrix by predefined orders. (A/L/C/P/Z/R  -> H)
-- 4. Calculate the specific parameters by model matrix.
-This directory is just used to describe the actions of modeling and calculating, the modeling and calculating details are indicated in Function directory and Model directory.
-## Function
-### Calculators
-We state all of the calculations in this directory.
-- Capacitance.py : We will indicate all of functions which is used to calculate the capacitance of the model.(Tower/Cable/OHL)
-- Impedance.py : We will indicate all of functions which is used to calculate the impedance of the model.(Tower/Cable/OHL)
-- Inductance.py : We will indicate all of functions which is used to calculate the inductance of the model.(Tower/Cable/OHL)
-### Builders
-We state all of the building matrix or parameters in this directory.
-- To be updated...
-## Model
-We state all of data structures which should be encapsulated to classes, by which it will be easy and friendly to extend functions and parameters.
-### main
-We state all of the main classes in this directory.
-- Tower.py : we created a Tower class which describes the parameters and matrix which will be used in model construction.
-- Cable.py : we created a Cable class in this file.
-- OHL.py : ...
-- Lightning.py : we created a Lightning class and a stroke class in this file. Lightning class contains much stroke object which can consist of the whole Lightning object.
-- Lump.py : ...
-### inferior
-We state all of inferior classes in this directory which will not be used directly in Driver directory but will be used by main classes.
-- Wires.py
-- Node.py
-- Constant.py
-- Info.py
-- Ground.py
-- Device.py
-## Test
-We created a test engineering in this directory.
-- test_main.py : we will dicover and run all of test cases by this python script.
-### unit
-- test_Model.py : we created many test cases to test Model initialization and Model calculation.
-- test_Math.py : we created many test cases to test Math calculation in the Utils/Math.py directory.
-### integration
-Integration test will be added and updated after front-end is finished, which will be used to test whole flows of modeling and calculation.
-- To be updated...
-## Utils
-- Math.py : we indicated all of the math functions here.
-- Matrix.py : we indicated all of the basic matrix operations that we need here.
+## Collaborate with your team
+
+- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
+- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
+- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
+- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
+- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+
+## Test and Deploy
+
+Use the built-in continuous integration in GitLab.
+
+- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
+- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
+- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
+- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
+- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+
+***
+
+# Editing this README
+
+When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+
+## Suggestions for a good README
+
+Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+
+## Name
+Choose a self-explaining name for your project.
+
+## Description
+Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+
+## Badges
+On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+
+## Visuals
+Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+
+## Installation
+Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+
+## Usage
+Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+
+## Support
+Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+
+## Roadmap
+If you have ideas for releases in the future, it is a good idea to list them in the README.
+
+## Contributing
+State if you are open to contributions and what your requirements are for accepting them.
+
+For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+
+You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+
+## Authors and acknowledgment
+Show your appreciation to those who have contributed to the project.
+
+## License
+For open source projects, say how it is licensed.
+
+## Project status
+If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
