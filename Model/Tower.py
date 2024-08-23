@@ -13,6 +13,7 @@ import numpy as np
 from scipy.linalg import block_diag
 from Utils.Matrix import expand_matrix, copy_and_expand_matrix, update_matrix, update_and_sum_matrix
 
+
 class Tower:
     def __init__(self, Info: Info, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Device: Device,
                  MeasurementNode: MeasurementNode):
@@ -21,7 +22,7 @@ class Tower:
 
         参数:
         info (TowerInfo): 杆塔自描述信息对象
-        wires (Wires): 杆塔线段对象集合
+        wires (Wires): 杆塔切分后线段对象集合
         tubeWire (TubeWire): 管状线段(杆塔中的管状线段唯一, 此处留存初始未切分的管状线段, 方便后续使用, 切分后的多个管状线存储于wires中)
         lump (Circuit): 集中参数对象集合
         ground (Ground): 杆塔地线对象集合
@@ -185,6 +186,3 @@ class Tower:
         for i in range(len(indices)):
             # 将C矩阵相应位置的点 更新为C0相应位置的数据
             self.capacitance_matrix = update_matrix(self.capacitance_matrix, indices[i], 0.5*C0 if i==0 or i==len(indices)-1 else C0)#与外界相连接的部分，需要折半
-
-
-

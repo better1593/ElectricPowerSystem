@@ -5,7 +5,7 @@ from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
 from Model.Contant import Constant
 from Model.Tower import Tower
-from Driver.initialization.initialization import initialize_tower
+from Driver.initialization.initialization import initialize_tower, initial_lump
 from Driver.modeling.tower_modeling import tower_building
 
 
@@ -33,6 +33,9 @@ if __name__ == '__main__':
     # 1. tower 初始化
     tower = initialize_tower(file_name,
                              max_length = max_length)
+
+
+    lumps = initial_lump(file_name)
 
 
     # 2. Cable 初始化
