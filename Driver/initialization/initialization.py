@@ -1,5 +1,11 @@
 import json
 import numpy as np
+
+from Model.Lump import Lumps, Resistor_Inductor, Measurement_Linear, Conductor_Capacitor, Measurement_GC, \
+    Voltage_Source_Cosine, Voltage_Source_Empirical, Current_Source_Cosine, Str2martix, Current_Source_Empirical, \
+    Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
+    Current_Control_Current_Source, Transformer_One_Phase, Transformer_Three_Phase, Mutual_Inductance_Two_Port, \
+    Mutual_Inductance_Three_Port, Nolinear_Resistor, Nolinear_F, Voltage_Controled_Switch, Time_Controled_Switch, A2G
 from Model.Node import Node
 from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
@@ -104,9 +110,270 @@ def initialize_tower(file_name, max_length):
     return tower
 
 
-def initialize_measurement(file_name):
+
+def initial_lump(file_name):
+    dt = 1e-6
+    T = 0.001
+    Nt = int(np.ceil(T / dt))
+    # Nbran = Bran['num'][0]
+    # Nnode = Node['num'][0]
+    # nodebran_n = np.copy(data[:, 2:5])
+    # nodebran_id = NodeBranIndex_Update(Node, Bran, data[:, 2:5])
+    #
     json_file_path = "Data/" + file_name + ".json"
     # 0. read json file
     with open(json_file_path, 'r') as j:
         load_dict = json.load(j)
 
+    lump_data = load_dict['Lump']
+
+    lumps = Lumps()
+    # d = data.shape[0]
+    for lump in lump_data:
+        lump_type = lump['Type']
+        name = lump['name']
+        bran_name = lump['bran_name']
+        node1= lump['node1']
+        node2= lump['node2']
+        match lump_type:
+            case 'RL':
+                resistance = lump['value1']
+                inductance = lump['value2']
+                lumps.add_resistor_inductor(
+                    Resistor_Inductor(name, bran_name, node1, node2, resistance, inductance))
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'GC':
+                conductance = lump['value1']
+                capacitance = lump['value2']
+                lumps.add_conductor_capacitor(
+                    Conductor_Capacitor(name, bran_name, node1, node2,  conductance, capacitance))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_gc(
+                        Measurement_GC(name, bran_name, node1, node2,  probe, conductance, capacitance))
+            case 'Vs':
+                type_of_data = lump['data_type']
+                resistance = lump['value1']
+                if type_of_data > 0:
+                    magnitude = lump['value2']
+                    frequency = lump['value3']
+                    angle = lump['value5']
+                    lumps.add_voltage_source_cosine(
+                        Voltage_Source_Cosine(name, bran_name, node1, node2, resistance, magnitude, frequency,
+                                              angle))
+                elif type_of_data == 0:
+                    voltages = Str2martix(lump['value2'])
+                    lumps.add_voltage_source_empirical(
+                        Voltage_Source_Empirical(name, bran_name, node1, node2,  resistance, voltages))
+
+                probe = ['prob']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'Is':
+                type_of_data = lump['data_type']
+                if type_of_data > 0:
+                    magnitude = lump['value2']
+                    frequency = lump['value3']
+                    angle = lump['value5']
+                    lumps.add_current_source_cosine(
+                        Current_Source_Cosine(name, bran_name, node1, node2, magnitude, frequency, angle))
+                elif type_of_data == 0:
+                    currents = Str2martix(lump['value2'])
+                    lumps.add_current_source_empirical(
+                        Current_Source_Empirical(name, bran_name, node1, node2, currents))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'VCVS':
+                resistance = lump['value1'][0]
+                gain = lump['value1'][1]
+                lumps.add_voltage_control_voltage_source(
+                    Voltage_Control_Voltage_Source(name, bran_name, node1, node2, resistance, gain))
+                probe = lump['probe']
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name,bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe[ith_probe]))
+            case 'ICVS':
+                resistance = lump['value1'][0]
+                r = lump['value1'][1]
+                lumps.add_current_control_voltage_source(
+                    Current_Control_Voltage_Source(name, bran_name, node1, node2, resistance, r))
+                probe = lump['probe']
+
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe],
+                                               node1[ith_probe], node2[ith_probe], probe[ith_probe]))
+            case 'VCIS':
+                g = lump['value1'][1]
+                lumps.add_voltage_control_current_source(
+                    Voltage_Control_Current_Source(name, bran_name, node1, node2, g))
+                probe = lump['probe']
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'ICIS':
+                gain = lump['value1'][1]
+                lumps.add_current_control_current_source(
+                    Current_Control_Current_Source(name, bran_name, node1, node2, gain))
+                probe = lump['probe']
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'TX2':
+                vpri = lump['value1'][0]
+                vsec = lump['value2'][0]
+                lumps.add_transformer_one_phase(
+                    Transformer_One_Phase(name, bran_name, node1, node2, vpri, vsec))
+                probe = lump['probe']
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'TX3':
+
+                vpri = lump['value1'][0]
+                vsec = lump['value2'][0]
+                lumps.add_transformer_three_phase(
+                    Transformer_Three_Phase(name, bran_name, node1, node2, vpri, vsec))
+                probe = lump['probe']
+                for ith_probe in range(6):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'M2':
+                resistance = lump['value1']
+                inductance = Str2martix(lump['value1'][0])
+                lumps.add_mutual_inductor_two_port(
+                    Mutual_Inductance_Two_Port(name, bran_name, node1, node2, resistance, inductance))
+                probe = lump['probe']
+                for ith_probe in range(2):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'M3':
+                resistance = lump['value1']
+
+                inductance = Str2martix(lump['value2'][0])
+                lumps.add_mutual_inductor_three_port(
+                    Mutual_Inductance_Three_Port(name, bran_name, node1, node2, resistance, inductance))
+                probe = lump['probe']
+                for ith_probe in range(3):
+                    if str(probe) != 'nan':
+                        lumps.measurements.add_measurement_linear(
+                            Measurement_Linear(name + '_{}'.format(ith_probe), bran_name[ith_probe], node1[ith_probe],
+                                               node2[ith_probe], probe))
+            case 'NLR':
+
+                resistance = lump['value1']
+                vi_characteristic = Str2martix(lump['value3'])
+                type_of_data = lump['data_type']
+                lumps.add_nolinear_resistor(
+                    Nolinear_Resistor(name, bran_name, node1, node2, resistance, vi_characteristic, type_of_data))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'NLF':
+                inductance = lump['value2']
+                bh_characteristic = Str2martix(lump['value3'])
+                type_of_data = lump['data_type']
+                lumps.add_nolinear_f(
+                    Nolinear_F(name, bran_name, node1, node2, inductance, bh_characteristic, type_of_data))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'SWV':
+
+                resistance = lump['value1']
+                voltage = lump['value3']
+                type_of_data = lump['data_type']
+                lumps.add_voltage_controled_switch(
+                    Voltage_Controled_Switch(name, bran_name, node1, node2, resistance, voltage, type_of_data))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'SWT':
+                close_time = lump['value1']
+                open_time = lump['value2']
+                type_of_data = lump['data_type']
+                lumps.add_time_controled_switch(
+                    Time_Controled_Switch(name, bran_name, node1, node2, close_time, open_time, type_of_data))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'A2G':
+                resistance = lump['value1']
+                lumps.add_a2g(
+                    A2G(name, bran_name, node1, node2, resistance))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+            case 'GOD':
+                resistance = lump['value1']
+                inductance = lump['value2']
+                lumps.add_a2g(
+                    Ground(name, bran_name, node1, node2, resistance, inductance))
+
+                probe = lump['probe']
+                if str(probe) != 'nan':
+                    lumps.measurements.add_measurement_linear(
+                        Measurement_Linear(name, bran_name, node1, node2, probe))
+
+    lumps.brans_nodes_list_initial()
+    lumps.lump_parameter_martix_initial()
+    lumps.lump_measurement_initial(Nt)
+    lumps.parameters_assign()
+    lumps.lump_voltage_source_martix_initial(T, dt)
+    lumps.lump_current_source_martix_initial(T, dt)
+    print_lumps(lumps)
+    return lumps
+
+def print_lumps(lumps):
+
+    matrix_A = lumps.incidence_matrix_A
+    print("incidence_matrix_A",matrix_A)
+
+    matrix_B = lumps.incidence_matrix_B
+    print('incidence_matrix_B ?',matrix_B)
+
+    resistance_matrix = lumps.resistance_matrix
+    print('resistance_matrix ?',resistance_matrix)
+
+    inductance_matrix = lumps.inductance_matrix
+    print('inductance_matrix ', inductance_matrix)
+
+    conductance_martix = lumps.conductance_martix
+    print('conductance_martix equals?',conductance_martix)
+
+    capacitance_martix = lumps.capacitance_martix
+    print('capacitance_martix equals?',capacitance_martix)
+
+# def initialize_measurement(file_name):
+#

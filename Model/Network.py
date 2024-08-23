@@ -26,4 +26,7 @@ class Network:
     def update_H(self,h):
         print("更新H矩阵")
 
+    def measurement(self,):
+        print("measure")
+
 
