@@ -278,7 +278,7 @@ def vectfit3(f, s, poles, weight, opts):
         C = x[:-1]
         D = x[-1]
 
-        C = np.complex_(C)
+        C = np.complex128(C)
         # temp_C = np.zeros(C.shape, dtype=complex)
         # 将 C 转换回复数形式
         for m in range(N):
@@ -395,7 +395,7 @@ def vectfit3(f, s, poles, weight, opts):
 
         # todo2 差
         if common_weight == 1:
-            Dk = np.zeros((Ns, N), dtype=np.complex_)
+            Dk = np.zeros((Ns, N), dtype=np.complex128)
             for m in range(N):
                 if cindex[m] == 0:  # real pole
                     Dk[:, m] = np.squeeze(weight) / np.squeeze(s - LAMBD[m][0])

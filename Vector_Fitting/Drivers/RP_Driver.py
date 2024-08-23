@@ -3,12 +3,12 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import matplotlib.pyplot as plt
 from time import time
-from Calculators.fitcalcABCDE import fitcalcABCDE
-from Calculators.intercheig import intercheig
-from Calculators.pr2ss import pr2ss
-from Calculators.rot import rot
-from Calculators.violextremaY import violextremaY
-from Calculators.FRPY import FRPY
+from Vector_Fitting.Calculators.fitcalcABCDE import fitcalcABCDE
+from Vector_Fitting.Calculators.intercheig import intercheig
+from Vector_Fitting.Calculators.pr2ss import pr2ss
+from Vector_Fitting.Calculators.rot import rot
+from Vector_Fitting.Calculators.violextremaY import violextremaY
+from Vector_Fitting.Calculators.FRPY import FRPY
 
 # 482行
 # 483行

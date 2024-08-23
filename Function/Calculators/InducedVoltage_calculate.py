@@ -1,7 +1,7 @@
 import numpy as np
 from Utils.Math import calculate_distances
 import sys
-sys.path.append(r'D:\Documents\a实验室\过电压计算程序\Electronic_model_building-main\Vector_Fitting')
+sys.path.append(r'D:\Documents\a实验室\过电压计算程序\ElectricModelBuilding_python\ElectricPowerSystem\Vector_Fitting')
 from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
 from Model.Contant import Constant

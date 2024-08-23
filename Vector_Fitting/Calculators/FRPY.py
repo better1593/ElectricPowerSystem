@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import eig
 from scipy.optimize import minimize
-from Calculators.pr2ss import pr2ss
+from Vector_Fitting.Calculators.pr2ss import pr2ss
 from Calculators.fitcalcPRE import fitcalcPRE
 
 # 暂时注释掉了49行的clear bigA

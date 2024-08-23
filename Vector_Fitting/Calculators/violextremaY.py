@@ -1,7 +1,7 @@
 import numpy as np
-from Calculators.fitcalcABCDE import fitcalcABCDE
-from Calculators.intercheig import intercheig
-from Calculators.rot import rot
+from Vector_Fitting.Calculators.fitcalcABCDE import fitcalcABCDE
+from Vector_Fitting.Calculators.intercheig import intercheig
+from Vector_Fitting.Calculators.rot import rot
 
 def violextremaY(SERflag, wintervals, A, B, C, D, colinterch):
     """

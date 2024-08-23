@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from scipy.linalg import eig
-from Calculators.fit_vector import vectfit3
+from Vector_Fitting.Calculators.fit_vector import vectfit3
 import matplotlib.pyplot as plt
 from scipy.linalg import block_diag
 

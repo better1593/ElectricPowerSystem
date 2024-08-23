@@ -3,9 +3,9 @@ import sys, os
 sys.path.append(os.pardir)
 import numpy as np
 
-import Drivers.VF_Driver as VFdriver
-import Drivers.RP_Driver as RPdriver
-import Loader.data_loader as Loader
+import Vector_Fitting.Drivers.VF_Driver as VFdriver
+import Vector_Fitting.Drivers.RP_Driver as RPdriver
+import Vector_Fitting.Loader.data_loader as Loader
 
 
 # 【函数说明】poles残差计算
