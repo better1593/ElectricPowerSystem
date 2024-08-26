@@ -11,9 +11,10 @@ from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
 from Model.Tower import Tower
 from Model.OHL import OHL
-
-
-
+from Model.Lightning import Stroke
+from Model.Contant import Constant
+from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate
+import pandas as pd
 # initialize wire in tower
 def initialize_wire(wire, nodes):
     bran = wire['bran']
@@ -167,7 +168,7 @@ def initialize_OHL(file_name, max_length):
     ground_dic = load_dict['OHL']['ground']
     ground = initialize_ground(ground_dic)
 
-    # 3. initalize tower
+    # 3. initalize ohl
     ohl = OHL(None, None, wires, None, None, ground)
     print("OHL loaded.")
     return ohl
@@ -421,6 +422,18 @@ def initial_lump(file_name):
     print_lumps(lumps)
     return lumps
 
+def initial_source(self, pt_start, pt_end):
+    stroke = Stroke('Heidler', duration=0.1, is_calculated=True, hit_pos=[500, 50, 0], parameter_set=None, parameters=None)
+    pt_start = np.array(pt_start)
+    pt_end = np.array(pt_end)
+    i_sr = pd.read_excel('i_sr.xlsx', header=None)
+    i_sr = i_sr.to_numpy()
+    stroke.current_waveform = i_sr
+    constants = Constant()
+    constants.ep0 = 8.85e-12
+    U_out = InducedVoltage_calculate(pt_start, pt_end, stroke, constants)
+
+
 def print_lumps(lumps):
 
     matrix_A = lumps.incidence_matrix_A
@@ -440,6 +453,9 @@ def print_lumps(lumps):
 
     capacitance_martix = lumps.capacitance_martix
     print('capacitance_martix equals?',capacitance_martix)
+
+
+
 
 # def initialize_measurement(file_name):
 #
