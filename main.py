@@ -1,11 +1,13 @@
 import numpy as np
 from scipy.linalg import block_diag
+
+from Driver.modeling.OHL_modeling import OHL_building
 from Model.Node import Node
 from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
 from Model.Contant import Constant
 from Model.Tower import Tower
-from Driver.initialization.initialization import initialize_tower, initial_lump
+from Driver.initialization.initialization import initialize_tower, initial_lump, initialize_OHL
 from Driver.modeling.tower_modeling import tower_building
 
 
@@ -34,7 +36,8 @@ if __name__ == '__main__':
     tower = initialize_tower(file_name,
                              max_length = max_length)
 
-
+    ohl = initialize_OHL(file_name,
+                             max_length = max_length)
     lumps = initial_lump(file_name)
 
 
@@ -54,6 +57,10 @@ if __name__ == '__main__':
 # （2）--------------------------计算矩阵---------------------------
     tower_building(tower, f0, max_length)
 
+    frq_default = np.logspace(0, 9, 37)
+    segment_num = int(3) #正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
+    segment_length = 20 #预设的参数
+    OHL_building(ohl, frq_default, segment_num, segment_length)
 
 
 # （3）--------------------------更新矩阵---------------------------
