@@ -66,6 +66,7 @@ class Tower:
         self.capacitance_matrix = np.zeros((self.wires.count_distinct_points(), self.wires.count_distinct_points()))
 
 
+
     def initialize_incidence_matrix(self):
         """
         initialize_incidence_matrix: calculate the incidence relationship of every wire.
@@ -209,6 +210,8 @@ class Tower:
         self.inductance_matrix = df_L.add(self.lump.inductance_matrix, fill_value=0).fillna(0)
         self.capacitance_matrix = df_C.add(self.lump.capacitance_matrix, fill_value=0).fillna(0)
         self.conductance_martix = df_G.add(self.lump.conductance_martix, fill_value=0).fillna(0)
+
+
 
 
 
