@@ -16,7 +16,7 @@ from Utils.Matrix import expand_matrix, copy_and_expand_matrix, update_matrix, u
 
 
 class Tower:
-    def __init__(self, Info: Info, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Device: Device,
+    def __init__(self, name, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Device: Device,
                  MeasurementNode: MeasurementNode):
         """
         初始化杆塔对象
@@ -39,7 +39,7 @@ class Tower:
         potential_matrix (numpy.ndarray, Num(points) * Num(points)): 电位矩阵
         capacitance_matrix (numpy.ndarray, Num(points) * Num(points)): 电容矩阵
         """
-        self.info = Info
+        self.name = name
         self.wires = Wires
         self.tubeWire = tubeWire
         self.lump = Lump

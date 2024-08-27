@@ -104,6 +104,7 @@ def initialize_ground(ground_dic):
 def initialize_tower(tower_dict, max_length):
 
 
+    # tower_dict['Wire']
     # 1. initialize wires
     wires = Wires()
     tube_wire = TubeWire(None, None, None, None)
@@ -147,7 +148,7 @@ def initialize_tower(tower_dict, max_length):
     lumps = initial_lump(tower_dict['Lump'])
 
     # 4. initalize tower
-    tower = Tower(None, wires, tube_wire, lumps, ground, None, None)
+    tower = Tower(tower_dict['name'], wires, tube_wire, lumps, ground, None, None)
     print("Tower loaded.")
     return tower
 
