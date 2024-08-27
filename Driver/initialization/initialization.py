@@ -2,7 +2,7 @@ import json
 import numpy as np
 
 from Model.Lump import Lumps, Resistor_Inductor, Measurement_Linear, Conductor_Capacitor, Measurement_GC, \
-    Voltage_Source_Cosine, Voltage_Source_Empirical, Current_Source_Cosine, Str2martix, Current_Source_Empirical, \
+    Voltage_Source_Cosine, Voltage_Source_Empirical, Current_Source_Cosine, Str2matrix, Current_Source_Empirical, \
     Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
     Current_Control_Current_Source, Transformer_One_Phase, Transformer_Three_Phase, Mutual_Inductance_Two_Port, \
     Mutual_Inductance_Three_Port, Nolinear_Resistor, Nolinear_F, Voltage_Controled_Switch, Time_Controled_Switch, A2G
@@ -29,9 +29,7 @@ def initialize_wire(wire, nodes):
     node_start = Node(name=node_name_start, x=pos_start[0], y=pos_start[1], z=pos_start[2])
     node_end = Node(name=node_name_end, x=pos_end[0], y=pos_end[1], z=pos_end[2])
 
-
     offset = wire['oft']
-    radius = wire['r0']
     R = wire['r']
     L = wire['l']
     sig = wire['sig']
@@ -48,9 +46,11 @@ def initialize_wire(wire, nodes):
     VF = {'odc': 10,
           'frq': frq}
     if wire['type'] == 'air' or wire['type'] == 'sheath' or wire['type'] == 'ground':
+        radius = wire['r0']
         return Wire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF)
     elif wire['type'] == 'core':
-        return CoreWire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF, wire['rs2'], wire['rs3'])
+        radius = wire['rc']
+        return CoreWire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF, wire['oft'], wire['cita'])
 
 # initialize wire in OHL
 def initialize_OHL_wire(wire):
@@ -101,17 +101,14 @@ def initialize_ground(ground_dic):
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
 
-def initialize_tower(file_name, max_length):
-    json_file_path = "Data/" + file_name + ".json"
-    # 0. read json file
-    with open(json_file_path, 'r') as j:
-        load_dict = json.load(j)
+def initialize_tower(tower_dict, max_length):
+
 
     # 1. initialize wires
     wires = Wires()
     tube_wire = TubeWire(None, None, None, None)
     nodes = []
-    for wire in load_dict['Tower']['Wire']:
+    for wire in tower_dict['Wire']:
 
         # 1.1 initialize air wire
         if wire['type'] == 'air':
@@ -126,7 +123,7 @@ def initialize_tower(file_name, max_length):
         # 1.3 initialize tube
         elif wire['type'] == 'tube':
             sheath_wire = initialize_wire(wire['sheath'], nodes)
-            tube_wire = TubeWire(sheath_wire, wire['sheath']['rs2'], wire['sheath']['rs3'], wire['sheath']['num'])
+            tube_wire = TubeWire(sheath_wire, wire['sheath']['rs1'], wire['sheath']['rs3'], wire['sheath']['num'])
 
             for core in wire['core']:
                 core_wire = initialize_wire(core, nodes)
@@ -143,27 +140,23 @@ def initialize_tower(file_name, max_length):
         wires.add_air_wire(tubeWire.sheath)  # sheath wire is in the air, we need to calculate it in air part.
     wires.display()
     # 2. initialize ground
-    ground_dic = load_dict['Tower']['ground']
+    ground_dic = tower_dict['ground']
     ground = initialize_ground(ground_dic)
 
     # 3. initialize lumps
-    lumps = initial_lump(load_dict['Tower']['Lump'])
+    lumps = initial_lump(tower_dict['Lump'])
 
     # 4. initalize tower
     tower = Tower(None, wires, tube_wire, lumps, ground, None, None)
     print("Tower loaded.")
     return tower
 
-def initialize_OHL(file_name, max_length):
+def initialize_OHL(OHL_dict, max_length):
 
-    json_file_path = "Data/" + file_name + ".json"
-    # 0. read json file
-    with open(json_file_path, 'r') as j:
-        load_dict = json.load(j)
 
     # 1. initialize wires
     wires = Wires()
-    for wire in load_dict['OHL']['Wire']:
+    for wire in OHL_dict['Wire']:
 
         #  initialize air wire
             wire_air = initialize_OHL_wire(wire)
@@ -172,7 +165,7 @@ def initialize_OHL(file_name, max_length):
     wires.display()
 
     # 2. initialize ground
-    ground_dic = load_dict['OHL']['ground']
+    ground_dic = OHL_dict['ground']
     ground = initialize_ground(ground_dic)
 
     # 3. initalize ohl
@@ -234,7 +227,7 @@ def initial_lump(lump_data):
                         Voltage_Source_Cosine(name, bran_name, node1, node2, resistance, magnitude, frequency,
                                               angle))
                 elif type_of_data == 0:
-                    voltages = Str2martix(lump['value2'])
+                    voltages = Str2matrix(lump['value2'])
                     lumps.add_voltage_source_empirical(
                         Voltage_Source_Empirical(name, bran_name, node1, node2,  resistance, voltages))
 
@@ -251,7 +244,7 @@ def initial_lump(lump_data):
                     lumps.add_current_source_cosine(
                         Current_Source_Cosine(name, bran_name, node1, node2, magnitude, frequency, angle))
                 elif type_of_data == 0:
-                    currents = Str2martix(lump['value2'])
+                    currents = Str2matrix(lump['value2'])
                     lumps.add_current_source_empirical(
                         Current_Source_Empirical(name, bran_name, node1, node2, currents))
 
@@ -327,7 +320,7 @@ def initial_lump(lump_data):
                                                node2[ith_probe], probe))
             case 'M2':
                 resistance = lump['value1']
-                inductance = Str2martix(lump['value1'][0])
+                inductance = Str2matrix(lump['value1'][0])
                 lumps.add_mutual_inductor_two_port(
                     Mutual_Inductance_Two_Port(name, bran_name, node1, node2, resistance, inductance))
                 probe = lump['probe']
@@ -339,7 +332,7 @@ def initial_lump(lump_data):
             case 'M3':
                 resistance = lump['value1']
 
-                inductance = Str2martix(lump['value2'][0])
+                inductance = Str2matrix(lump['value2'][0])
                 lumps.add_mutual_inductor_three_port(
                     Mutual_Inductance_Three_Port(name, bran_name, node1, node2, resistance, inductance))
                 probe = lump['probe']
@@ -351,7 +344,7 @@ def initial_lump(lump_data):
             case 'NLR':
 
                 resistance = lump['value1']
-                vi_characteristic = Str2martix(lump['value3'])
+                vi_characteristic = Str2matrix(lump['value3'])
                 type_of_data = lump['data_type']
                 lumps.add_nolinear_resistor(
                     Nolinear_Resistor(name, bran_name, node1, node2, resistance, vi_characteristic, type_of_data))
@@ -362,7 +355,7 @@ def initial_lump(lump_data):
                         Measurement_Linear(name, bran_name, node1, node2, probe))
             case 'NLF':
                 inductance = lump['value2']
-                bh_characteristic = Str2martix(lump['value3'])
+                bh_characteristic = Str2matrix(lump['value3'])
                 type_of_data = lump['data_type']
                 lumps.add_nolinear_f(
                     Nolinear_F(name, bran_name, node1, node2, inductance, bh_characteristic, type_of_data))
@@ -415,11 +408,11 @@ def initial_lump(lump_data):
                         Measurement_Linear(name, bran_name, node1, node2, probe))
 
     lumps.brans_nodes_list_initial()
-    lumps.lump_parameter_martix_initial()
+    lumps.lump_parameter_matrix_initial()
     lumps.lump_measurement_initial(Nt)
     lumps.parameters_assign()
-    lumps.lump_voltage_source_martix_initial(T, dt)
-    lumps.lump_current_source_martix_initial(T, dt)
+    lumps.lump_voltage_source_matrix_initial(T, dt)
+    lumps.lump_current_source_matrix_initial(T, dt)
     print_lumps(lumps)
     return lumps
 
@@ -441,7 +434,28 @@ def initial_source(network, nodes, file_name):
     U_out = InducedVoltage_calculate(pt_start, pt_end, stroke, constants)
     I_out = Current_source_generate(load_dict["Source"]["area"],load_dict["Source"]["wire"],load_dict["Source"]["position"],network, nodes)
 
+def initialize_cable(cable, max_length):
 
+    # 1. initialize wires
+    wire = cable
+    nodes = []
+    sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
+    tube_wire = TubeWire(sheath_wire, wire['TubeWire']['sheath']['rs1'], wire['TubeWire']['sheath']['rs3'],
+                         wire['info']['core_num'])
+
+    for core in wire['TubeWire']['core']:
+        core_wire = initialize_wire(core, nodes)
+        tube_wire.add_core_wire(core_wire)
+
+
+    # 2. initialize ground
+    ground_dic = cable['ground']
+    ground = initialize_ground(ground_dic)
+
+    # 3. initalize tower
+    cable = Cable(None, tube_wire, ground)
+    print("Cable loaded.")
+    return cable
 
 def print_lumps(lumps):
 
@@ -457,11 +471,11 @@ def print_lumps(lumps):
     inductance_matrix = lumps.inductance_matrix
     print('inductance_matrix ', inductance_matrix)
 
-    conductance_martix = lumps.conductance_martix
-    print('conductance_martix equals?',conductance_martix)
+    conductance_matrix = lumps.conductance_matrix
+    print('conductance_matrix equals?',conductance_matrix)
 
-    capacitance_martix = lumps.capacitance_martix
-    print('capacitance_martix equals?',capacitance_martix)
+    capacitance_matrix = lumps.capacitance_matrix
+    print('capacitance_matrix equals?',capacitance_matrix)
 
 
 

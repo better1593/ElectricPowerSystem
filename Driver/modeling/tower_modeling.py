@@ -175,7 +175,7 @@ def tower_building(tower, frequency, max_length):
     build_capacitance_matrix(tower, Cin)
 
     # 6. 合并lumps和tower
-    tower.combine_parameter_martix()
+    tower.combine_parameter_matrix()
 
 
     print("Tower building is completed.")
