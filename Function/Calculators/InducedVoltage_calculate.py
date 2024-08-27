@@ -23,13 +23,13 @@ def Current_source_generate(p1, p2, position, network, node_index):
     # 1. find the wire that is hit
     selected_wire = None
     if area == "tower":
-        selected_tower = [tower for tower in network.towers if tower.Info.name == p1]
+        selected_tower = [tower for tower in network.towers if tower.name == p1]
         selected_wire = [wire for wire in selected_tower[0].wires if wire.name.split("_")[0] == p2]
     elif area == "OHL":
-        selected_ohl = [ohl for ohl in network.ohls if ohl.Info.name == p1]
+        selected_ohl = [ohl for ohl in network.ohls if ohl.name == p1]
         selected_wire = [wire for wire in selected_ohl[0].wires if wire.name.split("_")[0] == p2]
     elif area == "cable":
-        selected_cable = [cable for cable in network.cables if cable.Info.name == p1]
+        selected_cable = [cable for cable in network.cables if cable.name == p1]
         selected_wire = [wire for wire in selected_cable[0].wires if wire.name.split("_")[0] == p2]
     # 2. find the closest node among nodes in the hit wire.
     nodes = set()
