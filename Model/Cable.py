@@ -4,7 +4,7 @@ from Ground import Ground
 from Wires import Wire, TubeWire
 
 class Cable:
-    def __init__(self, Info, TubeWire: TubeWire, ground: Ground):
+    def __init__(self, name, TubeWire: TubeWire, ground: Ground):
         """
         初始化管状线段对象。(同时满足cable中线段的定义)
 
@@ -12,7 +12,7 @@ class Cable:
         outer_radius (float): 添加了套管厚度的整体外径
         inner_num (int): 内部芯线的数量
         """
-        self.info = Info
+        self.name = name
         self.ground = ground
         self.TubeWire = TubeWire
         self.wires_name = []

@@ -749,6 +749,7 @@
   ],
   "Cable":[
     {
+      "name": "cable_1",
     "info": {
       "name": "Cable No.1",
       "id": "1",
@@ -879,6 +880,7 @@
   ],
   "OHL": [
     {
+      "name": "OHL_1",
       "Info": {
         "name": "OHL_1",
         "ID": 1,
