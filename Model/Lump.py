@@ -29,7 +29,7 @@ class Component:
         self.node2 = node2
         self.parameters = parameters if parameters is not None else {}
 
-    def assign_incidence_martix_value(self, im, bran, node, value):
+    def assign_incidence_matrix_value(self, im, bran, node, value):
         """
         【函数功能】关联矩阵赋值
         【入参】
@@ -86,8 +86,8 @@ class Resistor_Inductor(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(ima, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node2, 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -95,8 +95,8 @@ class Resistor_Inductor(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(imb, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node2, 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -175,8 +175,8 @@ class Voltage_Source_Cosine(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(ima, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node2, 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -184,8 +184,8 @@ class Voltage_Source_Cosine(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(imb, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node2, 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -242,8 +242,8 @@ class Voltage_Source_Empirical(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(ima, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node2, 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -251,8 +251,8 @@ class Voltage_Source_Empirical(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(imb, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node2, 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -372,10 +372,10 @@ class Voltage_Control_Voltage_Source(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[1], self.parameters['gain'])
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[1], -self.parameters['gain'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[1], self.parameters['gain'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[1], -self.parameters['gain'])
 
     def imb_parameter_assign(self, imb):
         '''
@@ -383,8 +383,8 @@ class Voltage_Control_Voltage_Source(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -417,8 +417,8 @@ class Current_Control_Voltage_Source(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -426,8 +426,8 @@ class Current_Control_Voltage_Source(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -459,8 +459,8 @@ class Voltage_Control_Current_Source(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[1], -self.parameters['gain'])
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[1], self.parameters['gain'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[1], -self.parameters['gain'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[1], self.parameters['gain'])
 
     def imb_parameter_assign(self, imb):
         '''
@@ -468,8 +468,8 @@ class Voltage_Control_Current_Source(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -500,8 +500,8 @@ class Current_Control_Current_Source(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -536,10 +536,10 @@ class Transformer_One_Phase(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         """
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[1], self.parameters['ratio'])
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[1], -self.parameters['ratio'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[1], self.parameters['ratio'])
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[1], -self.parameters['ratio'])
 
     def imb_parameter_assign(self, imb):
         """
@@ -547,10 +547,10 @@ class Transformer_One_Phase(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         """
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
-        super().assign_incidence_martix_value(imb, self.bran[1], self.node1[1], -1)
-        super().assign_incidence_martix_value(imb, self.bran[1], self.node2[1], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[1], self.node1[1], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[1], self.node2[1], 1)
 
     def r_parameter_assign(self, r):
         """
@@ -587,10 +587,10 @@ class Transformer_Three_Phase(Component):
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         """
         for i in range(3):
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node1[i], -1)
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node2[i], 1)
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node1[i + 3], self.parameters['ratio'])
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node2[i + 3], -self.parameters['ratio'])
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node1[i], -1)
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node2[i], 1)
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node1[i + 3], self.parameters['ratio'])
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node2[i + 3], -self.parameters['ratio'])
 
     def imb_parameter_assign(self, imb):
         '''
@@ -599,10 +599,10 @@ class Transformer_Three_Phase(Component):
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
         for i in range(3):
-            super().assign_incidence_martix_value(imb, self.bran[i], self.node1[i], -1)
-            super().assign_incidence_martix_value(imb, self.bran[i], self.node2[i], 1)
-            super().assign_incidence_martix_value(imb, self.bran[i + 3], self.node1[i + 3], -1)
-            super().assign_incidence_martix_value(imb, self.bran[i + 3], self.node2[i + 3], 1)
+            super().assign_incidence_matrix_value(imb, self.bran[i], self.node1[i], -1)
+            super().assign_incidence_matrix_value(imb, self.bran[i], self.node2[i], 1)
+            super().assign_incidence_matrix_value(imb, self.bran[i + 3], self.node1[i + 3], -1)
+            super().assign_incidence_matrix_value(imb, self.bran[i + 3], self.node2[i + 3], 1)
 
     def r_parameter_assign(self, r):
         """
@@ -639,10 +639,10 @@ class Mutual_Inductance_Two_Port(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         """
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
-        super().assign_incidence_martix_value(ima, self.bran[1], self.node1[1], -1)
-        super().assign_incidence_martix_value(ima, self.bran[1], self.node2[1], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[1], self.node1[1], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[1], self.node2[1], 1)
 
     def imb_parameter_assign(self, imb):
         """
@@ -650,10 +650,10 @@ class Mutual_Inductance_Two_Port(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         """
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
-        super().assign_incidence_martix_value(imb, self.bran[1], self.node1[1], -1)
-        super().assign_incidence_martix_value(imb, self.bran[1], self.node2[1], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[1], self.node1[1], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[1], self.node2[1], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -704,8 +704,8 @@ class Mutual_Inductance_Three_Port(Component):
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         """
         for i in range(3):
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node1[i], -1)
-            super().assign_incidence_martix_value(ima, self.bran[i], self.node2[i], 1)
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node1[i], -1)
+            super().assign_incidence_matrix_value(ima, self.bran[i], self.node2[i], 1)
 
     def imb_parameter_assign(self, imb):
         """
@@ -714,8 +714,8 @@ class Mutual_Inductance_Three_Port(Component):
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         """
         for i in range(3):
-            super().assign_incidence_martix_value(imb, self.bran[i], self.node1[i], -1)
-            super().assign_incidence_martix_value(imb, self.bran[i], self.node2[i], 1)
+            super().assign_incidence_matrix_value(imb, self.bran[i], self.node1[i], -1)
+            super().assign_incidence_matrix_value(imb, self.bran[i], self.node2[i], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -764,8 +764,8 @@ class Nolinear_Resistor(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -773,8 +773,8 @@ class Nolinear_Resistor(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_calculate(self, r):
         """
@@ -813,8 +813,8 @@ class Nolinear_F(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -822,8 +822,8 @@ class Nolinear_F(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def l_parameter_calculate(self, l):
         """
@@ -861,8 +861,8 @@ class Voltage_Controled_Switch(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -870,8 +870,8 @@ class Voltage_Controled_Switch(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
 
 class Time_Controled_Switch(Component):
@@ -899,8 +899,8 @@ class Time_Controled_Switch(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -908,8 +908,8 @@ class Time_Controled_Switch(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
 
 class A2G(Component):
@@ -933,8 +933,8 @@ class A2G(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -942,8 +942,8 @@ class A2G(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -975,8 +975,8 @@ class Ground(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(ima, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(ima, self.bran, self.node2, 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -984,8 +984,8 @@ class Ground(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran, self.node1, -1)
-        super().assign_incidence_martix_value(imb, self.bran, self.node2, 1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node1, -1)
+        super().assign_incidence_matrix_value(imb, self.bran, self.node2, 1)
 
     def r_parameter_assign(self, r):
         '''
@@ -1029,8 +1029,8 @@ class Nolinear_Element(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -1038,8 +1038,8 @@ class Nolinear_Element(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def r_parameter_calculate(self, r):
         """
@@ -1081,8 +1081,8 @@ class Switch_Disruptive_Effect_Model(Component):
         【入参】
         ima(pandas.Dataframe:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(ima, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(ima, self.bran[0], self.node2[0], 1)
 
     def imb_parameter_assign(self, imb):
         '''
@@ -1090,8 +1090,8 @@ class Switch_Disruptive_Effect_Model(Component):
         【入参】
         imb(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         '''
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node1[0], -1)
-        super().assign_incidence_martix_value(imb, self.bran[0], self.node2[0], 1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node1[0], -1)
+        super().assign_incidence_matrix_value(imb, self.bran[0], self.node2[0], 1)
 
     def disruptive_effect_calculate(self, v_primary, v_secondary):
         '''
@@ -1847,7 +1847,7 @@ class Lumps:
         """
         self.measurements.measurements_initial(Nt)
 
-    def lump_parameter_martix_initial(self):
+    def lump_parameter_matrix_initial(self):
         """
         【函数功能】Lump参数矩阵初始化
 
@@ -1858,8 +1858,8 @@ class Lumps:
         incidence_matrix_B(pandas.Dataframe:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
         resistance_matrix(pandas.Dataframe:Nbran*Nbran)：电阻矩阵（Nbran：支路数）
         inductance_matrix(pandas.Dataframe:Nbran*Nbran)：电感矩阵（Nbran：支路数）
-        conductance_martix(pandas.Dataframe:Nnode*Nnode)：电导矩阵（Nnode：节点数）
-        capacitance_martix(pandas.Dataframe:Nnode*Nnode)：电容矩阵（Nnode：节点数）
+        conductance_matrix(pandas.Dataframe:Nnode*Nnode)：电导矩阵（Nnode：节点数）
+        capacitance_matrix(pandas.Dataframe:Nnode*Nnode)：电容矩阵（Nnode：节点数）
         """
         #邻接矩阵A初始化
         self.incidence_matrix_A = pd.DataFrame(0, index=self.branList, columns=self.nodeList, dtype=float)
@@ -1874,12 +1874,12 @@ class Lumps:
         self.inductance_matrix = pd.DataFrame(0, index=self.branList, columns=self.branList, dtype=float)
 
         # 电导矩阵G初始化
-        self.conductance_martix = pd.DataFrame(0, index=self.nodeList, columns=self.nodeList, dtype=float)
+        self.conductance_matrix = pd.DataFrame(0, index=self.nodeList, columns=self.nodeList, dtype=float)
 
         # 电容矩阵C初始化
-        self.capacitance_martix = pd.DataFrame(0, index=self.nodeList, columns=self.nodeList, dtype=float)
+        self.capacitance_matrix = pd.DataFrame(0, index=self.nodeList, columns=self.nodeList, dtype=float)
 
-    def lump_voltage_source_martix_initial(self, calculate_time, dt):
+    def lump_voltage_source_matrix_initial(self, calculate_time, dt):
         """
         【函数功能】Lump电压矩阵初始化
 
@@ -1889,18 +1889,18 @@ class Lumps:
 
 
         【出参】
-        voltage_source_martix(pandas.Dataframe,(Nbran+Nnode)*calculate_num)：电压矩阵
+        voltage_source_matrix(pandas.Dataframe,(Nbran+Nnode)*calculate_num)：电压矩阵
         """
         calculate_num = int(np.ceil(calculate_time / dt))
         # 电源矩阵初始化
-        self.voltage_source_martix = pd.DataFrame(0, index=self.branList, columns=range(calculate_num))
+        self.voltage_source_matrix = pd.DataFrame(0, index=self.branList, columns=range(calculate_num))
 
         for voltage_source_list in [self.voltage_sources_cosine, self.voltage_sources_empirical]:
             for voltage_source in voltage_source_list:
-                self.voltage_source_martix.loc[voltage_source.bran] = voltage_source.voltage_calculate(calculate_time,
+                self.voltage_source_matrix.loc[voltage_source.bran] = voltage_source.voltage_calculate(calculate_time,
                                                                                                        dt)
 
-    def lump_current_source_martix_initial(self, calculate_time, dt):
+    def lump_current_source_matrix_initial(self, calculate_time, dt):
         """
         【函数功能】Lump电流矩阵初始化
 
@@ -1910,15 +1910,15 @@ class Lumps:
 
 
         【出参】
-        current_source_martix(pandas.Dataframe,(Nbran+Nnode)*calculate_num)：电liu矩阵
+        current_source_matrix(pandas.Dataframe,(Nbran+Nnode)*calculate_num)：电liu矩阵
         """
         calculate_num = int(np.ceil(calculate_time / dt))
         # 电源矩阵初始化
-        self.current_source_martix = pd.DataFrame(0, index=self.nodeList, columns=range(calculate_num))
+        self.current_source_matrix = pd.DataFrame(0, index=self.nodeList, columns=range(calculate_num))
 
         for current_source_list in [self.current_sources_cosine, self.current_sources_empirical]:
             for current_source in current_source_list:
-                self.current_source_martix.loc[current_source.bran] = current_source.voltage_calculate(calculate_time,
+                self.current_source_matrix.loc[current_source.bran] = current_source.voltage_calculate(calculate_time,
                                                                                                dt)
 
     def add_current_source_cosine(self, current_source_cosine):
@@ -2066,8 +2066,8 @@ class Lumps:
             component.l_parameter_assign(self.inductance_matrix)
 
         for component in self.conductor_capacitors:
-            component.g_parameter_assign(self.conductance_martix)
-            component.c_parameter_assign(self.capacitance_martix)
+            component.g_parameter_assign(self.conductance_matrix)
+            component.c_parameter_assign(self.capacitance_matrix)
 
         for ith_com, component in enumerate(
                 self.voltage_control_voltage_sources + self.current_control_voltage_sources +
@@ -2103,7 +2103,7 @@ def Lump_zero_initial_solve(ima, imb, R, L, G, C, sources, dt, Meas, diff: str =
     out(numpy.ndarray:Nbran+Nnode*1)：电压电流计算结果
     """
     Nn = ima.shape[1]
-    SR = sources.source_martix_update(0, dt)
+    SR = sources.source_matrix_update(0, dt)
     LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
     inv_LEFT = np.linalg.inv(LEFT)
     out = inv_LEFT.dot(SR)
@@ -2130,7 +2130,7 @@ def Lump_steady_state_solve(ima, imb, R, L, G, C, sources, w, Meas):
     out(numpy.ndarray:Nbran+Nnode*1)：电压电流计算结果
     """
     Nn = ima.shape[1]
-    SR = sources.source_vector_martix_update()
+    SR = sources.source_vector_matrix_update()
     LEFT = np.block([[-ima, -R - 1j * w * L], [G + 1j * w * C, -imb]])
     inv_LEFT = np.linalg.inv(LEFT)
     out = inv_LEFT.dot(SR)
@@ -2157,8 +2157,8 @@ def Lump_central_step_solve(ima, imb, R, L, G, C, sources, n, Ic, dt, hist):
     out(numpy.ndarray:Nbran+Nnode*1)：中心差分法电路求解结果
     """
     Nb, Nn = ima.shape
-    Vs_hist = sources.voltage_martix_update(n - 1, dt)
-    SR = sources.source_martix_update(n, dt)
+    Vs_hist = sources.voltage_matrix_update(n - 1, dt)
+    SR = sources.source_matrix_update(n, dt)
     LEFT = np.block([[-ima, -R - 2 * L / dt], [G + 2 * C / dt, -imb]])
     inv_LEFT = np.linalg.inv(LEFT)
     RIGHT = np.block(
@@ -2214,7 +2214,7 @@ def Lump_backward_step_solve(ima, imb, R, L, G, C, sources, n, dt, hist):
     out(numpy.ndarray:Nbran+Nnode*1)：电压电流计算结果
     """
     Nn = ima.shape[1]
-    SR = sources.source_martix_update(n, dt)
+    SR = sources.source_matrix_update(n, dt)
     LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
     inv_LEFT = np.linalg.inv(LEFT)
     RIGHT = np.block([[(-L / dt).dot(hist[Nn:])], [(C / dt).dot(hist[:Nn])]])
@@ -2383,22 +2383,22 @@ def NodeBranIndex_Update(Node, Bran, nodebran_name):
     return nodebran_id
 
 
-def Str2martix(Str):
+def Str2matrix(Str):
     '''
     【函数功能】字符转化矩阵
     【入参】
     Str(pandas.Dataframe:1*1)：参数矩阵 例：1,2;2,3（相同行不同元素用逗号","分割，不同行用分号";"分割）
 
     【出参】
-    martix(numpy.ndarray:n*n)：参数矩阵
+    matrix(numpy.ndarray:n*n)：参数矩阵
     '''
     str1 = Str.split(';')
     m = len(str1[0].split(','))
-    martix = np.empty((0, m))
+    matrix = np.empty((0, m))
     for i in range(len(str1)):
         str2 = np.array(str1[i].split(','), dtype='float')
-        martix = np.vstack((martix, str2))
-    return martix
+        matrix = np.vstack((matrix, str2))
+    return matrix
 
 
 class Export_file:
@@ -2510,17 +2510,17 @@ def Export_meas(measurements, dir_path):
 #
 #     print('inductance_matrix ', a_merge)
 #
-#     a1 = lump1.conductance_martix
-#     a2 = lump2.conductance_martix
+#     a1 = lump1.conductance_matrix
+#     a2 = lump2.conductance_matrix
 #     a_merge = a1.add(a2, fill_value=0).fillna(0)
 #
-#     print('conductance_martix equals?',a_merge)
+#     print('conductance_matrix equals?',a_merge)
 #
-#     a1 = lump1.capacitance_martix
-#     a2 = lump2.capacitance_martix
+#     a1 = lump1.capacitance_matrix
+#     a2 = lump2.capacitance_matrix
 #     a_merge = a1.add(a2, fill_value=0).fillna(0)
 #
-#     print('capacitance_martix equals?',a_merge)
+#     print('capacitance_matrix equals?',a_merge)
 #
 #     # Lump_circuit_sol(lumps.ima, lumps.imb.T, lumps.R, lumps.L, lumps.G, lumps.C, lumps.sources, lumps.measurements, dt,
 #     #                  T, Initial_Stable=1, Diff='Central')
