@@ -1,35 +1,28 @@
-class Cable:
-    def __init__(self, Info, name, Wires, Phase, phase_num, ground, Measurement):
-        """
-        初始化电缆对象
+import numpy as np
 
-        参数:
-        Info (CableInfo): 电缆自描述信息对象
-        Wires (Wires): 电缆线段对象集合
-        Ground (Ground): 电缆地线对象集合
-        Measurement (Measurement): 电缆测量对象集合
+from Ground import Ground
+from Wires import Wire, TubeWire
+
+class Cable:
+    def __init__(self, Info, TubeWire: TubeWire, ground: Ground):
         """
-        self.name = name
-        self.wires = Wires
+        初始化管状线段对象。(同时满足cable中线段的定义)
+
+        inner_radius (float): 不加套管厚度的内部外径
+        outer_radius (float): 添加了套管厚度的整体外径
+        inner_num (int): 内部芯线的数量
+        """
         self.info = Info
-        self.Phase = Phase
-        self.phase_num = phase_num
         self.ground = ground
+        self.TubeWire = TubeWire
         self.wires_name = []
         self.nodes_name = []
-        # 以下是参数矩阵，是OHL建模最终输出的参数
-        # 邻接矩阵 (pandas.Dataframe,self.wires_name*self.nodes_name)
-        self.incidence_matrix = None
-        # 电阻矩阵 (pandas.Dataframe,self.wires_name*self.wires_name)
-        self.resistance_matrix = None
-        # 电感矩阵 (pandas.Dataframe,self.wires_name*self.wires_name)
-        self.inductance_matrix = None
-        # 电容矩阵 (pandas.Dataframe,self.nodes_name*self.nodes_name)
-        self.capacitance_matrix = None
-        # 电导矩阵 (pandas.Dataframe,self.nodes_name*self.nodes_name)
-        self.conductance_matrix = None
-        # 阻抗矩阵 (pandas.Dataframe,self.wires_name*(self.wires_name*frequency_num))
-        self.impedance_martix = None
+
+        self.R = None
+        self.L = None
+        self.C = None
+        self.Cw = CW(0)
+        self.Z = None
 
     def get_brans_nodes_list(self, segment_num):
         """
@@ -42,9 +35,9 @@ class Cable:
         brans_name(list,wires_num*segment_num):支路名称列表
         nodes_name(list,wires_num*segment_num+1):节点名称列表
         """
-        brans_name = self.wires.get_all_wires()
-        start_nodes_name = self.wires.get_all_start_nodes()
-        end_nodes_name = self.wires.get_all_end_nodes()
+        brans_name = self.TubeWire.get_all_wires()
+        start_nodes_name = self.TubeWire.get_all_start_nodes()
+        end_nodes_name = self.TubeWire.get_all_end_nodes()
         if segment_num == 1:
             self.wires_name = brans_name
             self.nodes_name = start_nodes_name
@@ -60,3 +53,8 @@ class Cable:
 
             # 最后一个分段，则将终止节点加入列表
             self.nodes_name.extend(end_nodes_name)
+
+
+class CW:
+    def __init__(self, C0):
+        self.C0 = C0

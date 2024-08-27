@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source
+from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump
 from Driver.modeling.OHL_modeling import OHL_building
 from Driver.modeling.tower_modeling import tower_building
 
@@ -20,6 +20,13 @@ class Network:
         self.branches = {}
         self.starts = []
         self.ends = []
+        self.H = pd.DataFrame()
+        self.incidence_matrix = pd.DataFrame()
+        self.resistance_matrix = pd.DataFrame()
+        self.inductance_matrix = pd.DataFrame()
+        self.potential_matrix = pd.DataFrame()
+        self.capacitance_matrix = pd.DataFrame()
+        self.conductance_martix = pd.DataFrame()
 
     def calculate_branches(self):
         wires = [tower.wires.get_all_wires() for tower in self.towers]
@@ -34,6 +41,7 @@ class Network:
             self.starts.append(startnode)
             self.ends.append(endnode)
 
+
     def initalize_network(self):
         file_name = "01_2"
         max_length = 50
@@ -41,15 +49,34 @@ class Network:
         self.ohls = initialize_OHL(file_name, max_length) #初始化ohl
         self.calculate_branches()
 
-        self.sources = initial_source(self.starts,self.ends)
+    def initialize_source(self):
+        file_name = "01_2"
+        nodes = self.capacitance_matrix.columns.tolist()
+        self.sources = initial_source(self, nodes, file_name)
 
 
-    def get_H(self,f0,frq_default,max_length):
+    def calculate_H(self,f0,frq_default,max_length):
         self.initalize_network()
         segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
         segment_length = 20  # 预设的参数
         tower_building(self.towers[0], f0, max_length)
         OHL_building(self.ohls[0], frq_default, segment_num, segment_length)
+
+        for tower in self.towers:
+            self.concate_matrix(tower)
+        for ohl in self.ohls:
+            self.concate_matrix(self.ohls[0])
+        for cable in self.cables:
+            self.concate_matrix(cable)
+
+
+    def concate_matrix(self,obj):
+
+        self.incidence_matrix = self.incidence_matrix.add(obj.incidence_matrix, fill_value=0).fillna(0)
+        self.resistance_matrix = self.resistance_matrix.add(obj.resistance_matrix, fill_value=0).fillna(0)
+        self.inductance_matrix = self.inductance_matrix.add(obj.inductance_matrix, fill_value=0).fillna(0)
+        self.capacitance_matrix = self.capacitance_matrix.add(obj.capacitance_matrix, fill_value=0).fillna(0)
+        self.conductance_martix = self.conductance_martix.add(obj.conductance_martix, fill_value=0).fillna(0)
 
         print("得到一个合并的大矩阵H（a，b）")
     def initial_souces(self):

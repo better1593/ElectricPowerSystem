@@ -13,8 +13,12 @@ from Model.Tower import Tower
 from Model.OHL import OHL
 from Model.Lightning import Stroke
 from Model.Contant import Constant
-from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate
+from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, Current_source_generate
 import pandas as pd
+from Model.Cable import Cable
+
+
+
 # initialize wire in tower
 def initialize_wire(wire, nodes):
     bran = wire['bran']
@@ -142,8 +146,11 @@ def initialize_tower(file_name, max_length):
     ground_dic = load_dict['Tower']['ground']
     ground = initialize_ground(ground_dic)
 
-    # 3. initalize tower
-    tower = Tower(None, wires, tube_wire, None, ground, None, None)
+    # 3. initialize lumps
+    lumps = initial_lump(load_dict['Tower']['Lump'])
+
+    # 4. initalize tower
+    tower = Tower(None, wires, tube_wire, lumps, ground, None, None)
     print("Tower loaded.")
     return tower
 
@@ -178,7 +185,8 @@ def initialize_measurement(file_name):
     # 0. read json file
     with open(json_file_path, 'r') as j:
         load_dict = json.load(j)
-def initial_lump(file_name):
+
+def initial_lump(lump_data):
     dt = 1e-6
     T = 0.001
     Nt = int(np.ceil(T / dt))
@@ -186,13 +194,6 @@ def initial_lump(file_name):
     # Nnode = Node['num'][0]
     # nodebran_n = np.copy(data[:, 2:5])
     # nodebran_id = NodeBranIndex_Update(Node, Bran, data[:, 2:5])
-    #
-    json_file_path = "Data/" + file_name + ".json"
-    # 0. read json file
-    with open(json_file_path, 'r') as j:
-        load_dict = json.load(j)
-
-    lump_data = load_dict['Lump']
 
     lumps = Lumps()
     # d = data.shape[0]
@@ -422,16 +423,24 @@ def initial_lump(file_name):
     print_lumps(lumps)
     return lumps
 
-def initial_source(self, pt_start, pt_end):
+def initial_source(network, nodes, file_name):
+    json_file_path = "Data/" + file_name + ".json"
+    # 0. read json file
+    with open(json_file_path, 'r') as j:
+        load_dict = json.load(j)
+
     stroke = Stroke('Heidler', duration=0.1, is_calculated=True, hit_pos=[500, 50, 0], parameter_set=None, parameters=None)
-    pt_start = np.array(pt_start)
-    pt_end = np.array(pt_end)
+    pt_start = np.array(network.starts)
+    pt_end = np.array(network.ends)
     i_sr = pd.read_excel('i_sr.xlsx', header=None)
     i_sr = i_sr.to_numpy()
     stroke.current_waveform = i_sr
     constants = Constant()
     constants.ep0 = 8.85e-12
+
     U_out = InducedVoltage_calculate(pt_start, pt_end, stroke, constants)
+    I_out = Current_source_generate(load_dict["Source"]["area"],load_dict["Source"]["wire"],load_dict["Source"]["position"],network, nodes)
+
 
 
 def print_lumps(lumps):
