@@ -3,6 +3,7 @@
   "case_id": 2,
   "Tower": [
     {
+      "name": "tower_1",
       "info": {
         "id": "1",
         "type": "10",

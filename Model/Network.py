@@ -48,7 +48,7 @@ class Network:
             self.ends.append(endnode)
 
     # initialize internal network elements
-    def initalize_network(self,f0,frq_default,max_length):
+    def initialize_network(self,f0,frq_default,max_length):
         file_name = "01_2"
         json_file_path = "../Data/" + file_name + ".json"
         # 0. read json file
@@ -76,7 +76,7 @@ class Network:
 
     # initialize external element
     def initialize_source(self):
-        file_name = "01_2"
+        file_name = "../01_2"
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
 
@@ -109,7 +109,7 @@ class Network:
         print("得到一个合并的大矩阵H（a，b）")
 
 
-    def update_H(self,h):
+    def update_H(self,strategy):
         print("更新H矩阵")
 
     def get_x(self):
@@ -129,5 +129,6 @@ if __name__ == '__main__':
     # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
     max_length = 50
     network = Network()
-    Network.initalize_network(network,f0,frq,max_length)
+    Network.initialize_network(network,f0,frq,max_length)
+
     #print(network.incidence_matrix_A)
