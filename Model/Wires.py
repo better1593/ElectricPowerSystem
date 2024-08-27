@@ -351,7 +351,6 @@ class Wires:
         for wire in self.short_wires:
             wire.display()
 
-
     def add_air_wire(self, wire):
         self.air_wires.append(wire)
 
@@ -593,12 +592,12 @@ class Wires:
         all_wires = collections.OrderedDict()
         for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
             for wire in wire_list:
-                all_wires[wire.name] = True
+                all_wires[wire.name] = wire
 
         for tubewire in self.tube_wires:
-            all_wires[tubewire.sheath.name] = True
+            all_wires[tubewire.sheath.name] = tubewire.sheath
             for core_wire in tubewire.core_wires:
-                all_wires[core_wire.name] = True
+                all_wires[core_wire.name] = core_wire
 
         return list(all_wires)
 

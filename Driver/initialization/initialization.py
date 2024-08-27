@@ -454,7 +454,7 @@ def initialize_cable(cable, max_length):
     ground = initialize_ground(ground_dic)
 
     # 3. initalize tower
-    cable = Cable(None, tube_wire, ground)
+    cable = Cable(cable['name'], tube_wire, ground)
     print("Cable loaded.")
     return cable
 
