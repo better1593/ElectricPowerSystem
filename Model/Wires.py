@@ -698,7 +698,7 @@ class Wires:
                 names.append(wire.name.split("_")[0])
                 radii.append(wire.r)
 
-        return np.array(radii)
+        return np.array(radii).reshape(-1, 1)
 
 
     def get_heights(self):
