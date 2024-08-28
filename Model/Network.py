@@ -35,10 +35,10 @@ class Network:
         self.current_source_matrix = pd.DataFrame()
 
     def calculate_branches(self):
-        wires = [tower.wires.get_all_wires() for tower in self.towers]
-        wires2 = [ohl.wires.get_all_wires() for ohl in self.OHLs]
-        wires3 = [cable.wires.get_all_wires() for cable in self.cables]
-        wires = wires + wires2 + wires3
+        wires = [list(tower.wires.get_all_wires().values()) for tower in self.towers]
+        wires2 = [list(ohl.wires.get_all_wires().values()) for ohl in self.OHLs]
+        wires3 = [list(cable.wires.get_all_wires().values()) for cable in self.cables]
+        wires = wires[0] + wires2[0] + wires3[0]
 
         for wire in wires:
             startnode = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
@@ -75,8 +75,8 @@ class Network:
         self.combine_parameter_matrix()
 
     # initialize external element
-    def initialize_source(self):
-        file_name = "../01_2"
+    def initialize_source(self,lump_branList):
+        file_name = "01_2"
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
 
@@ -112,8 +112,6 @@ class Network:
     def update_H(self,strategy):
         print("更新H矩阵")
 
-    def get_x(self):
-        print("x=au+bu结果？")
 
 if __name__ == '__main__':
     frq = np.concatenate([
@@ -130,5 +128,7 @@ if __name__ == '__main__':
     max_length = 50
     network = Network()
     Network.initialize_network(network,f0,frq,max_length)
+    network.calculate_branches()
+    Network.initialize_source(network,network)
 
     #print(network.incidence_matrix_A)

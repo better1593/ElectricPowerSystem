@@ -1006,7 +1006,7 @@
   "Source":
     {
       "area": "tower_1",
-      "wire": "X01",
+      "wire": "Y01",
       "position": [1,0,0]
     }
 }

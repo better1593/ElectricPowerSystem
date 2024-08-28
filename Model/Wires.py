@@ -599,7 +599,7 @@ class Wires:
             for core_wire in tubewire.core_wires:
                 all_wires[core_wire.name] = core_wire
 
-        return list(all_wires)
+        return all_wires
 
 
     def get_tubeWires_points_index(self):

@@ -50,7 +50,7 @@ class OHL:
         brans_name(list,wires_num*segment_num):支路名称列表
         nodes_name(list,wires_num*segment_num+1):节点名称列表
         """
-        brans_name = self.wires.get_all_wires()
+        brans_name = list(self.wires.get_all_wires().keys())
         start_nodes_name = self.wires.get_all_start_nodes()
         end_nodes_name = self.wires.get_all_end_nodes()
         if segment_num == 1:
