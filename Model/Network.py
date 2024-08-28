@@ -61,12 +61,12 @@ class Network:
         self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
 
         # 2. build dedicated matrix for all elements
-        segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
-        segment_length = 50  # 预设的参数
+        # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
+        # segment_length = 50  # 预设的参数
         for tower in self.towers:
             tower_building(tower, f0, max_length)
         for ohl in self.OHLs:
-            OHL_building(ohl, frq_default, segment_num, segment_length)
+            OHL_building(ohl, frq_default, max_length)
         for cable in self.cables:
             cable_building(cable,f0,frq_default)
 
@@ -131,4 +131,4 @@ if __name__ == '__main__':
     network.calculate_branches()
     Network.initialize_source(network,network)
 
-    #print(network.incidence_matrix_A)
+    print(network.incidence_matrix_A)
