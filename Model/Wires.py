@@ -208,6 +208,64 @@ class TubeWire():
             inner_angle[i] = wire.inner_angle
         return inner_angle
 
+    def get_all_wires(self):
+        """
+        返回 TubeWire 对象中所有线段的所有线的集合。
+
+        参数:
+        TubeWire (TubeWire): TubeWire 对象
+
+        返回:
+        all_wires(OrderedDict): 所有不重复线的有序集合
+        """
+        # 获取所有不重复的节点(包含管状线段内部线段的起始点和终止点)
+        all_wires = collections.OrderedDict()
+
+        all_wires[self.sheath.name] = True
+        for core_wire in self.core_wires:
+            all_wires[core_wire.name] = True
+
+        return list(all_wires)
+
+    def get_all_start_nodes(self):
+        """
+        返回 TubeWire 对象中所有线段的所有起始点的集合。
+
+        参数:
+        TubeWire (TubeWire): TubeWire 对象
+
+        返回:
+        all_start_nodes(OrderedDict): 所有不重复起始点的有序集合
+        """
+        # 获取所有不重复的起始节点(包含管状线段内部线段的起始点)
+        all_start_nodes = collections.OrderedDict()
+
+        all_start_nodes[self.sheath.start_node.name] = True
+        for core_wire in self.core_wires:
+            all_start_nodes[core_wire.start_node.name] = True
+
+        return list(all_start_nodes)
+
+    def get_all_end_nodes(self):
+        """
+        返回 TubeWire 对象中所有线段的所有终止点的集合。
+
+        参数:
+        TubeWire (TubeWire): TubeWire 对象
+
+        返回:
+        all_end_nodes(OrderedDict): 所有不重复终止点的有序集合
+        """
+        # 获取所有不重复的终止节点(包含管状线段内部线段的终止点)
+        all_end_nodes = collections.OrderedDict()
+
+        all_end_nodes[self.sheath.end_node.name] = True
+        for core_wire in self.core_wires:
+            all_end_nodes[core_wire.end_node.name] = True
+
+        return list(all_end_nodes)
+
+
 
 class OHLWire(Wire):
     def __init__(self, name, start_node, end_node, offset, r, R, l, sig, mur, epr, VF, Cir_No, Phase, phase):
@@ -292,7 +350,6 @@ class Wires:
         print("[short_wires]:\n")
         for wire in self.short_wires:
             wire.display()
-
 
     def add_air_wire(self, wire):
         self.air_wires.append(wire)
@@ -413,7 +470,6 @@ class Wires:
         for wire in self.air_wires:
             all_points.add(wire.start_node)
             all_points.add(wire.end_node)
-
         return len(all_points)
 
 
@@ -449,7 +505,7 @@ class Wires:
         """
         return len(self.get_all_nodes())
 
-    
+
     def get_all_nodes(self):
         """
         返回 Wires 对象中所有线段的所有点的集合。
@@ -464,18 +520,109 @@ class Wires:
         all_nodes = collections.OrderedDict()
         for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
             for wire in wire_list:
-                all_nodes[wire.start_node] = True
-                all_nodes[wire.end_node] = True
+                all_nodes[wire.start_node.name] = True
+                all_nodes[wire.end_node.name] = True
 
         for tubewire in self.tube_wires:
-            all_nodes[tubewire.sheath.start_node] = True
-            all_nodes[tubewire.sheath.end_node] = True
+            all_nodes[tubewire.sheath.start_node.name] = True
+            all_nodes[tubewire.sheath.end_node.name] = True
             for core_wire in tubewire.core_wires:
-                all_nodes[core_wire.start_node] = True
-                all_nodes[core_wire.end_node] = True
+                all_nodes[core_wire.start_node.name] = True
+                all_nodes[core_wire.end_node.name] = True
 
         return list(all_nodes)
-    
+
+    def get_all_start_nodes(self):
+        """
+        返回 Wires 对象中所有线段的所有起始点的集合。
+
+        参数:
+        wires (Wires): Wires 对象
+
+        返回:
+        all_start_nodes(OrderedDict): 所有不重复起始点的有序集合
+        """
+        # 获取所有不重复的起始节点(包含管状线段内部线段的起始点)
+        all_start_nodes = collections.OrderedDict()
+        for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
+            for wire in wire_list:
+                all_start_nodes[wire.start_node.name] = True
+
+        for tubewire in self.tube_wires:
+            all_start_nodes[tubewire.sheath.start_node.name] = True
+            for core_wire in tubewire.core_wires:
+                all_start_nodes[core_wire.start_node.name] = True
+
+        return list(all_start_nodes)
+
+    def get_all_end_nodes(self):
+        """
+        返回 Wires 对象中所有线段的所有终止点的集合。
+
+        参数:
+        wires (Wires): Wires 对象
+
+        返回:
+        all_end_nodes(OrderedDict): 所有不重复终止点的有序集合
+        """
+        # 获取所有不重复的终止节点(包含管状线段内部线段的终止点)
+        all_end_nodes = collections.OrderedDict()
+        for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
+            for wire in wire_list:
+                all_end_nodes[wire.end_node.name] = True
+
+        for tubewire in self.tube_wires:
+            all_end_nodes[tubewire.sheath.end_node.name] = True
+            for core_wire in tubewire.core_wires:
+                all_end_nodes[core_wire.end_node.name] = True
+
+        return list(all_end_nodes)
+
+    def get_all_wires(self):
+        """
+        返回 Wires 对象中所有线段的所有线的集合。
+
+        参数:
+        wires (Wires): Wires 对象
+
+        返回:
+        all_wires(OrderedDict): 所有不重复线的有序集合
+        """
+        # 获取所有不重复的节点(包含管状线段内部线段的起始点和终止点)
+        all_wires = collections.OrderedDict()
+        for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
+            for wire in wire_list:
+                all_wires[wire.name] = wire
+
+        for tubewire in self.tube_wires:
+            all_wires[tubewire.sheath.name] = tubewire.sheath
+            for core_wire in tubewire.core_wires:
+                all_wires[core_wire.name] = core_wire
+
+        return list(all_wires)
+
+    def get_all_wires_object(self):
+        """
+        返回 Wires 对象中所有线段的所有线的集合。
+
+        参数:
+        wires (Wires): Wires 对象
+
+        返回:
+        all_wires(OrderedDict): 所有不重复线的有序集合
+        """
+        # 获取所有不重复的节点(包含管状线段内部线段的起始点和终止点)
+        all_wires = collections.OrderedDict()
+        for wire_list in [self.air_wires, self.ground_wires, self.a2g_wires, self.short_wires]:
+            for wire in wire_list:
+                all_wires[wire.name] = wire
+
+        for tubewire in self.tube_wires:
+            all_wires[tubewire.sheath.name] = tubewire.sheath
+            for core_wire in tubewire.core_wires:
+                all_wires[core_wire.name] = core_wire
+
+        return all_wires
 
     def get_tubeWires_points_index(self):
         """
@@ -492,15 +639,15 @@ class Wires:
         indices = []
         for tubewire in self.tube_wires:
             index = []
-            index.append(node_to_index[tubewire.sheath.start_node])
+            index.append(node_to_index[tubewire.sheath.start_node.name])
 
             for core_wire in tubewire.core_wires:
-                index.append(node_to_index[core_wire.start_node])
+                index.append(node_to_index[core_wire.start_node.name])
             indices.append(index)
         index = []
-        index.append(node_to_index[self.tube_wires[len(self.tube_wires)-1].sheath.end_node])
+        index.append(node_to_index[self.tube_wires[len(self.tube_wires)-1].sheath.end_node.name])
         for core_wire in self.tube_wires[len(self.tube_wires)-1].core_wires:
-                index.append(node_to_index[core_wire.end_node])
+                index.append(node_to_index[core_wire.end_node.name])
         indices.append(index)
         return indices
 
@@ -623,6 +770,41 @@ class Wires:
             inductance[i] = wire.L
         return inductance
 
+    def get_sig(self):
+        """
+        返回线段电导率矩阵,按照air、ground、a2g、short、tube的顺序。
+
+        返回:
+        sig (numpy.narray, n*1): n条线段的电导率
+        """
+        sig = np.zeros((len(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires), 1))
+        for i, wire in enumerate(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires):
+            sig[i] = wire.sig
+        return sig
+
+    def get_mur(self):
+        """
+        返回线段磁导率,按照air、ground、a2g、short、tube的顺序。
+
+        返回:
+        mur (numpy.narray, n*1): n条线段的磁导率
+        """
+        mur = np.zeros((len(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires), 1))
+        for i, wire in enumerate(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires):
+            mur[i] = wire.mur
+        return mur
+
+    def get_epr(self):
+        """
+        返回线段相对介电常数。
+
+        返回:
+        epr (numpy.narray, n*1): n条线段的相对介电常数
+        """
+        epr = np.zeros((len(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires), 1))
+        for i, wire in enumerate(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires):
+            epr[i] = wire.epr
+        return epr
 
 
     def get_bran_coordinates(self):

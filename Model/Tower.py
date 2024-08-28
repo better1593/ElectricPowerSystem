@@ -1,5 +1,6 @@
 import os
 import sys
+import pandas as pd
 
 curPath = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(curPath)
@@ -15,14 +16,14 @@ from Utils.Matrix import expand_matrix, copy_and_expand_matrix, update_matrix, u
 
 
 class Tower:
-    def __init__(self, Info: Info, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Device: Device,
+    def __init__(self, name, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Device: Device,
                  MeasurementNode: MeasurementNode):
         """
         初始化杆塔对象
 
         参数:
         info (TowerInfo): 杆塔自描述信息对象
-        wires (Wires): 杆塔线段对象集合
+        wires (Wires): 杆塔切分后线段对象集合
         tubeWire (TubeWire): 管状线段(杆塔中的管状线段唯一, 此处留存初始未切分的管状线段, 方便后续使用, 切分后的多个管状线存储于wires中)
         lump (Circuit): 集中参数对象集合
         ground (Ground): 杆塔地线对象集合
@@ -38,7 +39,7 @@ class Tower:
         potential_matrix (numpy.ndarray, Num(points) * Num(points)): 电位矩阵
         capacitance_matrix (numpy.ndarray, Num(points) * Num(points)): 电容矩阵
         """
-        self.info = Info
+        self.name = name
         self.wires = Wires
         self.tubeWire = tubeWire
         self.lump = Lump
@@ -48,6 +49,7 @@ class Tower:
         self.nodesList = Wires.get_node_names()
         self.nodesPositions = Wires.get_node_coordinates()
         self.bransList = Wires.get_bran_coordinates()
+        self.wires_name = []
         # 以下是参数矩阵，是Tower建模最终输出的参数
         # 邻接矩阵
         self.incidence_matrix = np.zeros((self.wires.count(), self.wires.count_distinct_points()))
@@ -64,6 +66,7 @@ class Tower:
         self.capacitance_matrix = np.zeros((self.wires.count_distinct_points(), self.wires.count_distinct_points()))
 
 
+
     def initialize_incidence_matrix(self):
         """
         initialize_incidence_matrix: calculate the incidence relationship of every wire.
@@ -77,18 +80,20 @@ class Tower:
         node_to_index = {node: i for i, node in enumerate(all_nodes)}
         for wire_list in [self.wires.air_wires, self.wires.ground_wires]:
             for wire in wire_list:
-                start_node_index = node_to_index[wire.start_node]
-                end_node_index = node_to_index[wire.end_node]
+                start_node_index = node_to_index[wire.start_node.name]
+                end_node_index = node_to_index[wire.end_node.name]
                 self.incidence_matrix[wire_index][start_node_index] = -1
                 self.incidence_matrix[wire_index][end_node_index] = 1
                 wire_index += 1
+                self.wires_name.append(wire.name)
         for tube_wire in self.wires.tube_wires:
             for core_wire in tube_wire.core_wires:
-                start_node_index = node_to_index[core_wire.start_node]
-                end_node_index = node_to_index[core_wire.end_node]
+                start_node_index = node_to_index[core_wire.start_node.name]
+                end_node_index = node_to_index[core_wire.end_node.name]
                 self.incidence_matrix[wire_index][start_node_index] = -1
                 self.incidence_matrix[wire_index][end_node_index] = 1
                 wire_index += 1
+                self.wires_name.append(core_wire.name)
 
     def initialize_resistance_matrix(self):
         """
@@ -183,3 +188,31 @@ class Tower:
         for i in range(len(indices)):
             # 将C矩阵相应位置的点 更新为C0相应位置的数据
             self.capacitance_matrix = update_matrix(self.capacitance_matrix, indices[i], 0.5*C0 if i==0 or i==len(indices)-1 else C0)#与外界相连接的部分，需要折半
+
+    def combine_parameter_matrix(self):
+        """
+        【函数功能】 合并Lumps和Tower的参数矩阵
+        """
+        #获取线名称列表
+        wire_name_list = self.wires_name
+
+        #获取节点名称列表
+        node_name_list = self.wires.get_all_nodes()
+
+        df_A = pd.DataFrame(self.incidence_matrix, index=wire_name_list, columns=node_name_list)
+        df_R = pd.DataFrame(self.resistance_matrix, index=wire_name_list, columns=wire_name_list)
+        df_L = pd.DataFrame(self.inductance_matrix, index=wire_name_list, columns=wire_name_list)
+        df_C = pd.DataFrame(self.capacitance_matrix, index=node_name_list, columns=node_name_list)
+        df_G = pd.DataFrame(0, index=node_name_list, columns=node_name_list)
+
+        self.incidence_matrix_A = df_A.add(self.lump.incidence_matrix_A, fill_value=0).fillna(0)
+        self.incidence_matrix_B = df_A.add(self.lump.incidence_matrix_B, fill_value=0).fillna(0)
+        self.resistance_matrix = df_R.add(self.lump.resistance_matrix, fill_value=0).fillna(0)
+        self.inductance_matrix = df_L.add(self.lump.inductance_matrix, fill_value=0).fillna(0)
+        self.capacitance_matrix = df_C.add(self.lump.capacitance_matrix, fill_value=0).fillna(0)
+        self.conductance_matrix = df_G.add(self.lump.conductance_matrix, fill_value=0).fillna(0)
+
+
+
+
+

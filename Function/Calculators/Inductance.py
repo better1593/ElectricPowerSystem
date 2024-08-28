@@ -3,7 +3,7 @@ import numpy.matlib
 from Utils.Math import calculate_direction_cosines, calculate_distances
 
 
-def calculate_coreWires_inductance(core_wires_r, core_wires_offset, core_wires_angle, sheath_inner_radius):
+def calculate_coreWires_inductance(core_wires_r, core_wires_offset, core_wires_angle, sheath_inner_radius, constants):
     """
     【函数功能】芯线电感计算
     【入参】
@@ -15,7 +15,7 @@ def calculate_coreWires_inductance(core_wires_r, core_wires_offset, core_wires_a
     【出参】
     Lc(numpy.ndarray:n*n): n条芯线电感矩阵
     """
-    mu0 = 4 * np.pi * 1e-7
+    mu0 = constants.mu0
     Npha = core_wires_r.shape[0]
     tmat = np.tile(core_wires_angle, (1, Npha)) # tmat is
     cost = np.cos((tmat - tmat.T) * np.pi / 180)
@@ -28,12 +28,13 @@ def calculate_coreWires_inductance(core_wires_r, core_wires_offset, core_wires_a
     tmp0 = np.sqrt(tmp1 / tmp2)
     Lc = mu0 / (2 * np.pi) * np.log(tmp0 / sheath_inner_radius)
     Lc_diag = mu0 / (2 * np.pi) * np.log(
-        (sheath_inner_radius * sheath_inner_radius - core_wires_offset * core_wires_offset) / (core_wires_r * sheath_inner_radius))
+        (sheath_inner_radius * sheath_inner_radius - core_wires_offset * core_wires_offset) / (
+                    core_wires_r * sheath_inner_radius))
     np.fill_diagonal(Lc, Lc_diag)
     return Lc
 
 
-def calculate_sheath_inductance(end_node_z, sheath_r, sheath_outer_radius):
+def calculate_sheath_inductance(end_node_z, sheath_r, sheath_outer_radius, constants):
     """
     【函数功能】套管电感计算
     【入参】
@@ -44,7 +45,7 @@ def calculate_sheath_inductance(end_node_z, sheath_r, sheath_outer_radius):
     【出参】
     Ls(float)：套管电感
     """
-    mu0 = 4 * np.pi * 1e-7
+    mu0 = constants.mu0
     Vduct = 1e6
     if end_node_z[0] >= Vduct:
         Ls = 0
@@ -563,3 +564,44 @@ def calculate_wires_inductance_potential_with_ground(wires, ground, constants):
     L0 = km * L0
     P0 = ke * P0
     return L0, P0
+
+
+def calculate_OHL_mutual_inductance(radius, height, end_node_y, constants):
+    """
+    【函数功能】架空线电感电容矩阵参数计算
+    【入参】
+    end_node_y (numpy.ndarray,n*1): n条线的第二个节点的y值
+    height(numpy.ndarray,n*1):n条线高
+    radius (numpy.ndarray,n*1): n条线的半径
+    constants(Constant类)：常数类
+
+    【出参】
+    Lm(numpy.ndarray:n*n)：n条线互感矩阵
+    """
+    mu0 = constants.mu0
+    km = mu0 / (2 * np.pi)
+    Ncon = np.array([radius]).reshape(-1).shape[0]
+    out = np.log(2 * height / radius)
+    Lm = np.diag(out.reshape(-1))
+    for i in range(Ncon - 1):
+        for j in range(i + 1, Ncon):
+            d = abs(end_node_y[i] - end_node_y[j])
+            h1 = height[i]
+            h2 = height[j]
+            Lm[i, j] = 0.5 * np.log((d ** 2 + (h1 + h2) ** 2) / (d ** 2 + (h1 - h2) ** 2))
+            Lm[j, i] = np.copy(Lm[i, j])
+    Lm = km * Lm
+    return Lm
+
+def calculate_OHL_inductance(inductance, Lm):
+    """
+    【函数功能】架空线电感矩阵参数计算
+    【入参】
+    Lm(numpy.ndarray:n*n)：n条线互感矩阵
+    inductance(numpy.ndarray,n*1): n条线的电感
+
+    【出参】
+    L(numpy.ndarray:n*n)：n条线的电感矩阵
+    """
+    L = Lm + np.diag(inductance.reshape((-1)))
+    return L
