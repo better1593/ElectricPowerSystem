@@ -1,6 +1,6 @@
 import json
 import numpy as np
-
+import copy
 from Model.Lump import Lumps, Resistor_Inductor, Measurement_Linear, Conductor_Capacitor, Measurement_GC, \
     Voltage_Source_Cosine, Voltage_Source_Empirical, Current_Source_Cosine, Str2matrix, Current_Source_Empirical, \
     Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
@@ -164,13 +164,17 @@ def initialize_OHL(OHL_dict, max_length):
             wires.add_air_wire(wire_air)  # add air wire in wires
 
     wires.display()
+    wires2 = copy.deepcopy(wires)
+    wires.split_long_wires_all(max_length)
 
     # 2. initialize ground
     ground_dic = OHL_dict['ground']
     ground = initialize_ground(ground_dic)
 
     # 3. initalize ohl
-    ohl = OHL(None, None, wires, None, None, ground)
+    ohl = OHL(None, None, wires2, wires, None, None, ground)
+   # ohl.wires_name = list(ohl.wires.get_all_wires().keys())
+   # ohl.nodes_name = ohl.wires.get_all_nodes()
     print("OHL loaded.")
     return ohl
 
@@ -446,8 +450,8 @@ def initial_source(network, nodes, file_name):
 def initialize_cable(cable, max_length):
 
     # 1. initialize wires
-    wires = Wires()
     wire = cable
+    wires = Wires()
     nodes = []
     sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
     tube_wire = TubeWire(sheath_wire, wire['TubeWire']['sheath']['rs1'], wire['TubeWire']['sheath']['rs3'],
@@ -456,7 +460,11 @@ def initialize_cable(cable, max_length):
     for core in wire['TubeWire']['core']:
         core_wire = initialize_wire(core, nodes)
         tube_wire.add_core_wire(core_wire)
+
     wires.add_tube_wire(tube_wire)
+
+    wires.display()
+    wires.split_long_wires_all(max_length)
 
     # 2. initialize ground
     ground_dic = cable['ground']
@@ -464,6 +472,8 @@ def initialize_cable(cable, max_length):
 
     # 3. initalize tower
     cable = Cable(cable['name'], wires, ground)
+    cable.wires_name = cable.wires.get_all_wires()
+    cable.nodes_name = cable.wires.get_all_nodes()
     print("Cable loaded.")
     return cable
 
