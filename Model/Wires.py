@@ -684,6 +684,22 @@ class Wires:
             radii[i] = wire.r
         return radii
 
+    def get_radii_not_split(self):
+        """
+        返回线段集合的内径矩阵,按照air、ground、a2g、short的顺序。
+
+        返回:
+        radii (numpy.narray, n*1): n条线段的内径矩阵,每行为某一条线段的内径
+        """
+        radii = []
+        names = []
+        for i, wire in enumerate(self.air_wires + self.ground_wires + self.a2g_wires + self.short_wires):
+            if wire.name.split("_")[0] not in names:
+                names.append(wire.name.split("_")[0])
+                radii.append(wire.r)
+
+        return np.array(radii)
+
 
     def get_heights(self):
         """
