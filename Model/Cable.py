@@ -4,7 +4,7 @@ from Ground import Ground
 from Wires import Wire, TubeWire
 
 class Cable:
-    def __init__(self, name, TubeWire: TubeWire, ground: Ground):
+    def __init__(self, name, Wires, ground: Ground):
         """
         初始化管状线段对象。(同时满足cable中线段的定义)
 
@@ -14,7 +14,7 @@ class Cable:
         """
         self.name = name
         self.ground = ground
-        self.TubeWire = TubeWire
+        self.wires = Wires
         self.wires_name = []
         self.nodes_name = []
 
@@ -35,9 +35,9 @@ class Cable:
         brans_name(list,wires_num*segment_num):支路名称列表
         nodes_name(list,wires_num*segment_num+1):节点名称列表
         """
-        brans_name = self.TubeWire.get_all_wires()
-        start_nodes_name = self.TubeWire.get_all_start_nodes()
-        end_nodes_name = self.TubeWire.get_all_end_nodes()
+        brans_name = list(self.wires.get_all_wires().keys())
+        start_nodes_name = self.wires.get_all_start_nodes()
+        end_nodes_name = self.wires.get_all_end_nodes()
         if segment_num == 1:
             self.wires_name = brans_name
             self.nodes_name = start_nodes_name
