@@ -18,7 +18,7 @@
         "mode_con": 0,
         "mode_gnd": 0,
         "pole_height": 10.5,
-        "pole_head": "x01"
+        "pole_head": "X01"
       },
       "ground": {
         "glb": 1,
@@ -750,12 +750,11 @@
   "Cable":[
     {
       "name": "cable_1",
-    "info": {
-      "name": "Cable No.1",
+      "info": {
       "id": "1",
       "type": "01",
-      "T_head": "T005",
-      "T_tail": "T007",
+      "T_head": "tower_5",
+      "T_tail": "tower_7",
       "core_num": 3,
       "armor_num": 1,
       "delta_L": 10,
