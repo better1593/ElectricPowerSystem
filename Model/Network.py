@@ -36,7 +36,7 @@ class Network:
 
     def calculate_branches(self):
         wires = [list(tower.wires.get_all_wires().values()) for tower in self.towers]
-        wires2 = [list(ohl.wires.get_all_wires().values()) for ohl in self.OHLs]
+        wires2 = [list(ohl.wires_split.get_all_wires().values()) for ohl in self.OHLs]
         wires3 = [list(cable.wires.get_all_wires().values()) for cable in self.cables]
         wires = wires[0] + wires2[0] + wires3[0]
 
@@ -62,13 +62,13 @@ class Network:
 
         # 2. build dedicated matrix for all elements
         segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
-        segment_length = 20  # 预设的参数
+        segment_length = 50  # 预设的参数
         for tower in self.towers:
             tower_building(tower, f0, max_length)
         for ohl in self.OHLs:
             OHL_building(ohl, frq_default, segment_num, segment_length)
         for cable in self.cables:
-            cable_building(cable,f0,frq_default, segment_num, segment_length)
+            cable_building(cable,f0,frq_default)
 
 
         # 3. combine matrix
