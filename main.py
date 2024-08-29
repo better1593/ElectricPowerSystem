@@ -10,4 +10,4 @@ H_invert = pd.DataFrame(np.linalg.pinv(a_df.values), columns=a_df.index, index=a
 identity = np.dot(a_df, H_invert)
 print(identity)
 print(H_invert)
-print(a_df)
+print(np.array(a_df))
