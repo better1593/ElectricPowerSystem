@@ -9,8 +9,8 @@ from Model.Contant import Constant
 
 def build_incidence_matrix(cable):
     # A矩阵
-    print("------------------------------------------------")
-    print("A matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableA matrix is building...")
     # 初始化A矩阵
     wires_name = cable.wires_name
     nodes_name = cable.nodes_name
@@ -26,13 +26,13 @@ def build_incidence_matrix(cable):
     cable.incidence_matrix = pd.DataFrame(incidence_martix, index=wires_name, columns=nodes_name)
 
     print(cable.incidence_matrix)
-    print("A matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableA matrix is built successfully")
+    print("cable------------------------------------------------")
 
 def build_resistance_matrix(cable, Zin, Zcs, Zsc):
     # R矩阵
-    print("------------------------------------------------")
-    print("R matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableR matrix is building...")
 
     Rin = np.real(Zin)
     Rcs = np.real(Zcs)
@@ -55,13 +55,13 @@ def build_resistance_matrix(cable, Zin, Zcs, Zsc):
     cable.resistance_matrix = pd.DataFrame(resistance_martix, index=cable.wires_name, columns=cable.wires_name, dtype=float)
 
     print(cable.resistance_matrix)
-    print("R matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableR matrix is built successfully")
+    print("cable------------------------------------------------")
 
 def build_inductance_matrix(cable, Zin, Zcs, Zsc, Lc, Ls, frequency):
     # L矩阵
-    print("------------------------------------------------")
-    print("L matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableL matrix is building...")
     Npha = cable.wires.tube_wires[0].inner_num
     Lcs = np.imag(Zcs) / (2 * np.pi * frequency)
     Lsc = np.imag(Zsc) / (2 * np.pi * frequency)
@@ -84,13 +84,13 @@ def build_inductance_matrix(cable, Zin, Zcs, Zsc, Lc, Ls, frequency):
     cable.inductance_matrix = pd.DataFrame(inductance_martix, index=cable.wires_name, columns=cable.wires_name, dtype=float)
 
     print(cable.inductance_matrix)
-    print("L matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableL matrix is built successfully")
+    print("cable------------------------------------------------")
 
 def build_capacitance_matrix(cable, Lc, Ls, constants):
     # C矩阵
-    print("------------------------------------------------")
-    print("C matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableC matrix is building...")
     tube_wire = cable.wires.tube_wires[0]
     Npha = tube_wire.inner_num
     C0 = calculate_coreWires_capacitance(tube_wire.outer_radius, tube_wire.inner_radius,
@@ -117,25 +117,25 @@ def build_capacitance_matrix(cable, Lc, Ls, constants):
     cable.capacitance_matrix = pd.DataFrame(capacitance_martix, index=cable.nodes_name, columns=cable.nodes_name, dtype=float)
 
     print(cable.capacitance_matrix)
-    print("C matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableC matrix is built successfully")
+    print("cable------------------------------------------------")
 
 def build_conductance_matrix(cable):
     # G矩阵
-    print("------------------------------------------------")
-    print("G matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableG matrix is building...")
 
     cable.conductance_matrix = pd.DataFrame(0, index=cable.nodes_name, columns=cable.nodes_name, dtype=float)
 
     print(cable.conductance_matrix)
-    print("G matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableG matrix is built successfully")
+    print("cable------------------------------------------------")
 
 
 def build_impedance_matrix(cable, Lc, Ls, constants, varied_frequency):
     # Z矩阵
-    print("------------------------------------------------")
-    print("Z matrix is building...")
+    print("cable------------------------------------------------")
+    print("cableZ matrix is building...")
     Nf = varied_frequency.size
     tube_wire = cable.wires.tube_wires[0]
     Npha = tube_wire.inner_num
@@ -167,8 +167,8 @@ def build_impedance_matrix(cable, Lc, Ls, constants, varied_frequency):
 
     cable.impedance_martix = Z
 
-    print("Z matrix is built successfully")
-    print("------------------------------------------------")
+    print("cableZ matrix is built successfully")
+    print("cable------------------------------------------------")
 
 
 def build_core_sheath_merged_impedance_matrix(tubeWire, frequency, constants):
@@ -194,8 +194,8 @@ def build_core_sheath_merged_impedance_matrix(tubeWire, frequency, constants):
 
 
 def cable_building(cable, frequency, varied_frequency):
-    print("------------------------------------------------")
-    print("Cable building...")
+    print("cable------------------------------------------------")
+    print("cableCable building...")
     # 0.参数准备
     constants = Constant()
     tube_wire = cable.wires.tube_wires[0]
@@ -226,5 +226,5 @@ def cable_building(cable, frequency, varied_frequency):
 
     # 6. 构建Z矩阵
     build_impedance_matrix(cable, Lc, Ls, constants, varied_frequency)
-    print("Cable building is completed.")
-    print("------------------------------------------------")
+    print("cableCable building is completed.")
+    print("cable------------------------------------------------")

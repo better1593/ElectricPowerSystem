@@ -61,12 +61,12 @@ class Network:
         self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
 
         # 2. build dedicated matrix for all elements
-        segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
-        segment_length = 50  # 预设的参数
+        # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
+        # segment_length = 50  # 预设的参数
         for tower in self.towers:
             tower_building(tower, f0, max_length)
         for ohl in self.OHLs:
-            OHL_building(ohl, frq_default, segment_num, segment_length)
+            OHL_building(ohl, frq_default, max_length)
         for cable in self.cables:
             cable_building(cable,f0,frq_default)
 
@@ -75,7 +75,7 @@ class Network:
         self.combine_parameter_matrix()
 
     # initialize external element
-    def initialize_source(self,lump_branList):
+    def initialize_source(self):
         file_name = "01_2"
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
@@ -104,13 +104,24 @@ class Network:
              #   self.current_source_matrix.add(model.current_source_matrix, fill_value=0).fillna(0)
 
 
-    def calculate_H(self,f0,frq_default,max_length):
+    def concate_H(self):
+        GC = self.capacitance_matrix.add(self.conductance_matrix)#点点
+        RL = self.inductance_matrix.add(self.resistance_matrix)#线线
+        A = self.incidence_matrix_A#线点
+        A_T = self.incidence_matrix_B.T#点线
 
-        print("得到一个合并的大矩阵H（a，b）")
+        A_RL = pd.concat([-A, RL], axis=1)
+        GC_A = pd.concat([GC, -A_T], axis=1)
+
+        H = pd.concat([A_RL, GC_A], axis=0)
+
+        print("得到一个合并的大矩阵H",H)
+        self.H = H
 
 
-    def update_H(self,strategy):
-        print("更新H矩阵")
+    def update_H(self):
+
+        print("更新H矩阵",self.H)
 
 
 if __name__ == '__main__':
@@ -129,6 +140,9 @@ if __name__ == '__main__':
     network = Network()
     Network.initialize_network(network,f0,frq,max_length)
     network.calculate_branches()
-    Network.initialize_source(network,network)
-
-    #print(network.incidence_matrix_A)
+    network.initialize_source()
+    network.concate_H()
+    H_invert = pd.DataFrame(np.linalg.pinv(network.H.values), columns=network.H.index, index=network.H.columns)
+    source = network.sources
+    x = H_invert.dot(source)
+    print(x)
