@@ -118,6 +118,43 @@ class Network:
         print("得到一个合并的大矩阵H",H)
         self.H = H
 
+    def H_calculate(self, sources, dt, Nt):
+        """
+        【函数功能】电路求解
+        【入参】
+        ima(numpy.ndarray:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
+        imb(numpy.ndarray:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
+        R(numpy.ndarray:Nbran*Nbran)：电阻矩阵（Nbran：支路数）
+        L(numpy.ndarray:Nbran*Nbran)：电感矩阵（Nbran：支路数）
+        G(numpy.ndarray:Nnode*Nnode)：电导矩阵（Nnode：节点数）
+        C(numpy.ndarray:Nnode*Nnode)：电容矩阵（Nnode：节点数）
+        sources(numpy.ndarray:(Nbran+Nnode)*Nt)：电源矩阵（Nbran：支路数，Nnode：节点数）
+        dt(float)：步长
+        Nt(int)：计算总次数
+
+        【出参】
+        out(numpy.ndarray:(Nbran+Nnode)*Nt)：计算结果矩阵（Nbran：支路数，Nnode：节点数）
+        """
+
+        G = np.array(self.capacitance_matrix)#点点
+        C = np.array(self.conductance_matrix)
+        R = np.array(self.inductance_matrix)#线线
+        L = np.array(self.resistance_matrix)
+        ima = np.array(self.incidence_matrix_A)#线点
+        imb = np.array(self.incidence_matrix_B.T)#点线
+        nodes = len(self.capacitance_matrix.columns.tolist())
+        branches = len(self.inductance_matrix.columns.tolist())
+        out = np.zeros((branches + nodes, Nt))
+        branches, nodes = ima.shape
+        for i in range(Nt - 1):
+            Vnode = out[:nodes, i]
+            Ibran = out[nodes:, i]
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
+            inv_LEFT = np.linalg.pinv(LEFT)
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
+            temp_result = inv_LEFT.dot(sources + RIGHT)
+            out[:, i + 1] = np.copy(temp_result)
+        return out
 
     def update_H(self):
 
@@ -135,14 +172,19 @@ if __name__ == '__main__':
           'frq': frq}
     # 固频的频率值
     f0 = 2e4
+    dt = 1e-6
+    T = 0.001
+    Nt = int(np.ceil(T/dt))
     # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
     max_length = 50
     network = Network()
     Network.initialize_network(network,f0,frq,max_length)
     network.calculate_branches()
     network.initialize_source()
-    network.concate_H()
-    H_invert = pd.DataFrame(np.linalg.pinv(network.H.values), columns=network.H.index, index=network.H.columns)
+    # network.concate_H()
+    # H_invert = pd.DataFrame(np.linalg.pinv(network.H.values), columns=network.H.index, index=network.H.columns)
     source = network.sources
-    x = H_invert.dot(source)
-    print(x)
+    # x = H_invert.dot(source)
+    out = network.H_calculate(source,dt,Nt)
+    #print(x)
+    print(out)
