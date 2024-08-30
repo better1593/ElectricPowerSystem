@@ -18,7 +18,7 @@ from Model.Wires import OHLWire
 
 class Network:
     def __init__(self, **kwargs):
-        self.towers = {}
+        self.towers = kwargs.get('towers', [])
         self.cables = kwargs.get('cables', [])
         self.OHLs = kwargs.get('OHLs', [])
         self.sources = kwargs.get('sources', [])
@@ -39,8 +39,8 @@ class Network:
     def calculate_branches(self):
         tower_branch_node = {}
         tower_nodes = []
-        for tower in self.towers.values():
-            for wire in tower.get_all_wires().values():
+        for tower in self.towers:
+            for wire in list(tower.wires.get_all_wires().values()):
                 startnode = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
                 endnode = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
                 tower_nodes.append(startnode)
@@ -48,15 +48,17 @@ class Network:
                 self.branches[wire.name] = [startnode, endnode, tower.name]
 
         for obj in self.OHLs+self.cables:
-            wires = list(obj.wires_split.get_all_wires().values())
+            wires = list(obj.wires.get_all_wires().values())
             for wire in wires:
-                position_obj_start = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
-                position_tower_start = self.towers.get(obj.info.HeadTower).info.position
-                start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
-                position_obj_end = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
-                position_tower_end = self.towers.get(obj.info.TailTower).info.position
-                end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
-                self.branches[wire.name]=[start_position,end_position,obj.info.name]
+                position_obj_start = [wire.start_node.x+obj.info.HeadTower_pos[0], wire.start_node.y+obj.info.HeadTower_pos[1],
+                                      wire.start_node.z+obj.info.HeadTower_pos[2]]
+                #position_tower_start = self.towers.get(obj.info.HeadTower).info.position
+                #start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
+                position_obj_end = [wire.end_node.x+obj.info.TailTower_pos[0], wire.end_node.y+obj.info.TailTower_pos[1],
+                                    wire.end_node.z+obj.info.TailTower_pos[2]]
+               # position_tower_end = self.towers.get(obj.info.TailTower).info.position
+                #end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
+                self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name]
 
 
 
@@ -69,8 +71,8 @@ class Network:
             load_dict = json.load(j)
 
         # 1. initialize all elements in the network
-        tower_list = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
-        self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
+        self.towers = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
+        #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
         self.OHLs = [initialize_OHL(ohl, max_length=max_length) for ohl in load_dict['OHL']]
         self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
 
@@ -78,10 +80,9 @@ class Network:
         # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
         # segment_length = 50  # 预设的参数
         for tower in self.towers:
-            tower_building(tower.values(), f0, max_length)
-
+            tower_building(tower, f0, max_length)
         for ohl in self.OHLs:
-            OHL_building(ohl, frq_default, max_length)
+            OHL_building(ohl, max_length,frq_default)
         for cable in self.cables:
             cable_building(cable,f0,frq_default)
 

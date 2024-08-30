@@ -155,7 +155,7 @@ def initialize_tower(tower_dict, max_length):
     # 4. initalize tower
     tower = Tower(tower_dict['name'], info, wires, tube_wire, lumps, ground, None, None)
     print("Tower loaded.")
-    return {tower_dict['name']:tower}
+    return tower
 
 def initialize_OHL(OHL_dict, max_length):
 
@@ -163,12 +163,12 @@ def initialize_OHL(OHL_dict, max_length):
     # 1. initialize wires
     wires = Wires()
     for wire in OHL_dict['Wire']:
-
         #  initialize air wire
-            wire_air = initialize_OHL_wire(wire)
-            wires.add_air_wire(wire_air)  # add air wire in wires
+        wire_air = initialize_OHL_wire(wire)
+        wire_air.start_node = [i + j for i, j in zip(wire_air.start_node, OHL_dict['Info']['Tower_head_pos'])]
+        wires.add_air_wire(wire_air)  # add air wire in wires
 
-    wires.display()
+   # wires.display()
 
     # 2. initialize ground
     ground_dic = OHL_dict['ground']
@@ -180,7 +180,7 @@ def initialize_OHL(OHL_dict, max_length):
                      OHL_info['Tower_tail'],OHL_info['Tower_tail_id'],  OHL_info['Tower_tail_pos'])
 
     # 4. initalize ohl
-    ohl = OHL(None, info, wires, None, None, ground)
+    ohl = OHL(None, info, wires, None, len(OHL_dict['Wire']), ground)
    # ohl.wires_name = list(ohl.wires.get_all_wires().keys())
    # ohl.nodes_name = ohl.wires.get_all_nodes()
     print("OHL loaded.")
@@ -439,12 +439,15 @@ def initial_source(network, nodes, file_name):
     stroke.calculate()
     channel = Channel(hit_pos=[500, 50, 0])
     lightning =Lightning(id=1, type='Direct', strokes=[stroke], channel=channel)
-    pt_start = np.array(network.starts)
-    pt_end = np.array(network.ends)
+    start = [l[0] for l in list(network.branches.values())]
+    end = [l[2] for l in list(network.branches.values())]
+    branches = list(network.branches.keys())
+    pt_start = np.array(start)
+    pt_end = np.array(end)
     constants = Constant()
     constants.ep0 = 8.85e-12
 
-    U_out = InducedVoltage_calculate(pt_start, pt_end, list(network.branches.keys()), lightning, stroke_sequence=0, constants=constants)
+    U_out = InducedVoltage_calculate(pt_start, pt_end, branches, lightning, stroke_sequence=0, constants=constants)
     I_out = LightningCurrrent_calculate(load_dict["Source"]["area"], load_dict["Source"]["wire"], load_dict["Source"]["position"], network, nodes, lightning, stroke_sequence=0)
    # Source_Matrix = pd.concat([I_out, U_out], axis=0)
     lumps = [tower.lump for tower in network.towers]
@@ -468,11 +471,18 @@ def initialize_cable(cable, max_length):
     wires = Wires()
     nodes = []
     sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
+    sheath_wire.start_node.x = sheath_wire.start_node.x, cable['Info']['T_head_pos'][0]
+    sheath_wire.start_node.y = sheath_wire.start_node.y, cable['Info']['T_head_pos'][1]
+    sheath_wire.start_node.z = sheath_wire.start_node.z, cable['Info']['T_head_pos'][3]
+
+    sheath_wire.end_node = sheath_wire.end_node.x, cable['Info']['T_tail_pos'][0]
     tube_wire = TubeWire(sheath_wire, wire['TubeWire']['sheath']['rs1'], wire['TubeWire']['sheath']['rs3'],
                          wire['TubeWire']['sheath']['core_num'])
 
+
     for core in wire['TubeWire']['core']:
         core_wire = initialize_wire(core, nodes)
+        core_wire.start_node = [i + j for i, j in zip(core_wire.start_node, cable['Info']['T_head_pos'])]
         tube_wire.add_core_wire(core_wire)
 
     wires.add_tube_wire(tube_wire)

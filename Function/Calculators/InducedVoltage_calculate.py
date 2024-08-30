@@ -24,7 +24,7 @@ def LightningCurrrent_calculate(p1, p2, position, network, node_index, lightning
     selected_wire = None
     if area == "tower":
 
-        selected_tower = [tower for tower in network.towers if tower.name == p1]
+        selected_tower = [tower for tower in network.towers if tower.info.name == p1]
         selected_wire = [wire for wire in list(selected_tower[0].wires.get_all_wires().values()) if wire.name.split("_")[0] == p2]
     elif area == "OHL":
         selected_ohl = [ohl for ohl in network.ohls if ohl.name == p1]
