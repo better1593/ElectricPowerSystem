@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 import pandas as pd
+from functools import reduce
 
 from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump, \
     initialize_cable
@@ -17,14 +18,15 @@ from Model.Wires import OHLWire
 
 class Network:
     def __init__(self, **kwargs):
-        self.towers = kwargs.get('towers', [])
-        self.cables = kwargs.get('cable', [])
+        self.towers = {}
+        self.cables = kwargs.get('cables', [])
         self.OHLs = kwargs.get('OHLs', [])
         self.sources = kwargs.get('sources', [])
         self.branches = {}
         self.starts = []
         self.ends = []
         self.H = pd.DataFrame()
+        self.solution = pd.DataFrame()
         self.incidence_matrix_A = pd.DataFrame()
         self.incidence_matrix_B = pd.DataFrame()
         self.resistance_matrix = pd.DataFrame()
@@ -35,17 +37,28 @@ class Network:
         self.current_source_matrix = pd.DataFrame()
 
     def calculate_branches(self):
-        wires = [list(tower.wires.get_all_wires().values()) for tower in self.towers]
-        wires2 = [list(ohl.wires_split.get_all_wires().values()) for ohl in self.OHLs]
-        wires3 = [list(cable.wires.get_all_wires().values()) for cable in self.cables]
-        wires = wires[0] + wires2[0] + wires3[0]
+        tower_branch_node = {}
+        tower_nodes = []
+        for tower in self.towers.values():
+            for wire in tower.get_all_wires().values():
+                startnode = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
+                endnode = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
+                tower_nodes.append(startnode)
+                tower_nodes.append(endnode)
+                self.branches[wire.name] = [startnode, endnode, tower.name]
 
-        for wire in wires:
-            startnode = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
-            endnode = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
-            self.branches[wire.name] = [startnode, endnode]
-            self.starts.append(startnode)
-            self.ends.append(endnode)
+        for obj in self.OHLs+self.cables:
+            wires = list(obj.wires_split.get_all_wires().values())
+            for wire in wires:
+                position_obj_start = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
+                position_tower_start = self.towers.get(obj.info.HeadTower).info.position
+                start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
+                position_obj_end = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
+                position_tower_end = self.towers.get(obj.info.TailTower).info.position
+                end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
+                self.branches[wire.name]=[start_position,end_position,obj.info.name]
+
+
 
     # initialize internal network elements
     def initialize_network(self,f0,frq_default,max_length):
@@ -56,7 +69,8 @@ class Network:
             load_dict = json.load(j)
 
         # 1. initialize all elements in the network
-        self.towers = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
+        tower_list = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
+        self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
         self.OHLs = [initialize_OHL(ohl, max_length=max_length) for ohl in load_dict['OHL']]
         self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
 
@@ -64,7 +78,8 @@ class Network:
         # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
         # segment_length = 50  # 预设的参数
         for tower in self.towers:
-            tower_building(tower, f0, max_length)
+            tower_building(tower.values(), f0, max_length)
+
         for ohl in self.OHLs:
             OHL_building(ohl, frq_default, max_length)
         for cable in self.cables:
@@ -136,55 +151,63 @@ class Network:
         out(numpy.ndarray:(Nbran+Nnode)*Nt)：计算结果矩阵（Nbran：支路数，Nnode：节点数）
         """
 
-        G = np.array(self.capacitance_matrix)#点点
-        C = np.array(self.conductance_matrix)
-        R = np.array(self.inductance_matrix)#线线
-        L = np.array(self.resistance_matrix)
+        C = np.array(self.capacitance_matrix)#点点
+        G = np.array(self.conductance_matrix)
+        L = np.array(self.inductance_matrix)#线线
+        R = np.array(self.resistance_matrix)
         ima = np.array(self.incidence_matrix_A)#线点
         imb = np.array(self.incidence_matrix_B.T)#点线
+        source = np.array(sources)
+
         nodes = len(self.capacitance_matrix.columns.tolist())
         branches = len(self.inductance_matrix.columns.tolist())
+
         out = np.zeros((branches + nodes, Nt))
         branches, nodes = ima.shape
         for i in range(Nt - 1):
-            Vnode = out[:nodes, i]
-            Ibran = out[nodes:, i]
+            Vnode = out[:nodes, i].reshape((-1,1))
+            Ibran = out[nodes:, i].reshape((-1,1))
+            Isource = source[:,i].reshape((-1,1))
             LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
             inv_LEFT = np.linalg.pinv(LEFT)
             RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
-            temp_result = inv_LEFT.dot(sources + RIGHT)
-            out[:, i + 1] = np.copy(temp_result)
-        return out
+            temp_result = inv_LEFT.dot(Isource + RIGHT)
+            out[:, i + 1] = np.copy(temp_result)[:,0]
+        self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
 
     def update_H(self):
 
         print("更新H矩阵",self.H)
 
+    def run(self):
+        frq = np.concatenate([
+            np.arange(1, 91, 10),
+            np.arange(100, 1000, 100),
+            np.arange(1000, 10000, 1000),
+            np.arange(10000, 100000, 10000)
+        ])
+        VF = {'odc': 10,
+              'frq': frq}
+        # 固频的频率值
+        f0 = 2e4
+        dt = 1e-6
+        T = 0.001
+        Nt = int(np.ceil(T/dt))
+        # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
+        max_length = 50
+
+        Network.initialize_network(network,f0,frq,max_length)
+        network.calculate_branches()
+        network.initialize_source()
+        source = network.sources
+        # x = H_invert.dot(source)
+        network.H_calculate(source,dt,Nt)
+        #print(x)
+        print(network.H)
 
 if __name__ == '__main__':
-    frq = np.concatenate([
-        np.arange(1, 91, 10),
-        np.arange(100, 1000, 100),
-        np.arange(1000, 10000, 1000),
-        np.arange(10000, 100000, 10000)
-    ])
-    VF = {'odc': 10,
-          'frq': frq}
-    # 固频的频率值
-    f0 = 2e4
-    dt = 1e-6
-    T = 0.001
-    Nt = int(np.ceil(T/dt))
-    # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
-    max_length = 50
     network = Network()
-    Network.initialize_network(network,f0,frq,max_length)
-    network.calculate_branches()
-    network.initialize_source()
+    network.run()
+    print(network.solution)
     # network.concate_H()
     # H_invert = pd.DataFrame(np.linalg.pinv(network.H.values), columns=network.H.index, index=network.H.columns)
-    source = network.sources
-    # x = H_invert.dot(source)
-    out = network.H_calculate(source,dt,Nt)
-    #print(x)
-    print(out)

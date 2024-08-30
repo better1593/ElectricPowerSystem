@@ -16,7 +16,7 @@ from Model.Contant import Constant
 from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrrent_calculate
 import pandas as pd
 from Model.Cable import Cable
-
+from Model.Info import TowerInfo,OHLInfo, CableInfo
 
 
 # initialize wire in tower
@@ -147,10 +147,15 @@ def initialize_tower(tower_dict, max_length):
     # 3. initialize lumps
     lumps = initial_lump(tower_dict['Lump'])
 
+    # 4. information of tower
+    tower_info = tower_dict['Info']
+    info = TowerInfo(tower_info['name'],tower_info['id'],tower_info['type'],tower_info['position'],tower_info['Vclass'],
+         tower_info['Theta'],tower_info['mode_con'],tower_info['mode_gnd'], tower_info['pole_height'], tower_info['pole_head'])
+
     # 4. initalize tower
-    tower = Tower(tower_dict['name'], wires, tube_wire, lumps, ground, None, None)
+    tower = Tower(tower_dict['name'], info, wires, tube_wire, lumps, ground, None, None)
     print("Tower loaded.")
-    return tower
+    return {tower_dict['name']:tower}
 
 def initialize_OHL(OHL_dict, max_length):
 
@@ -164,15 +169,18 @@ def initialize_OHL(OHL_dict, max_length):
             wires.add_air_wire(wire_air)  # add air wire in wires
 
     wires.display()
-    wires2 = copy.deepcopy(wires)
-    wires.split_long_wires_all(max_length)
 
     # 2. initialize ground
     ground_dic = OHL_dict['ground']
     ground = initialize_ground(ground_dic)
+    # 3. initialize info
+    OHL_info = OHL_dict['Info']
+    info = OHLInfo(OHL_info['name'],OHL_info['id'],OHL_info['type'],OHL_info['dL'],OHL_info['model1'],
+         OHL_info['model2'],OHL_info['Tower_head'],OHL_info['Tower_head_id'], OHL_info['Tower_head_pos'],
+                     OHL_info['Tower_tail'],OHL_info['Tower_tail_id'],  OHL_info['Tower_tail_pos'])
 
-    # 3. initalize ohl
-    ohl = OHL(None, None, wires2, wires, None, None, ground)
+    # 4. initalize ohl
+    ohl = OHL(None, info, wires, None, None, ground)
    # ohl.wires_name = list(ohl.wires.get_all_wires().keys())
    # ohl.nodes_name = ohl.wires.get_all_nodes()
     print("OHL loaded.")
@@ -449,13 +457,19 @@ def initial_source(network, nodes, file_name):
 
 def initialize_cable(cable, max_length):
 
+    # 0. initialize info
+    cable_info = cable['Info']
+    info = CableInfo(cable_info['name'],cable_info['id'],cable_info['type'],cable_info['T_head'],cable_info['T_head_id'],
+    cable_info['T_head_pos'],cable_info['T_tail'], cable_info['T_tail_id'],cable_info['T_tail_pos'],
+    cable_info['core_num'],cable_info['armor_num'],cable_info['delta_L'], cable_info['mode_con'], cable_info['mode_gnd'])
+
     # 1. initialize wires
     wire = cable
     wires = Wires()
     nodes = []
     sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
     tube_wire = TubeWire(sheath_wire, wire['TubeWire']['sheath']['rs1'], wire['TubeWire']['sheath']['rs3'],
-                         wire['info']['core_num'])
+                         wire['TubeWire']['sheath']['core_num'])
 
     for core in wire['TubeWire']['core']:
         core_wire = initialize_wire(core, nodes)
@@ -470,8 +484,8 @@ def initialize_cable(cable, max_length):
     ground_dic = cable['ground']
     ground = initialize_ground(ground_dic)
 
-    # 3. initalize tower
-    cable = Cable(cable['name'], wires, ground)
+    # 3. initalize cable
+    cable = Cable(cable['name'], info, wires, ground)
     cable.wires_name = cable.wires.get_all_wires()
     cable.nodes_name = cable.wires.get_all_nodes()
     print("Cable loaded.")
@@ -497,7 +511,16 @@ def print_lumps(lumps):
     capacitance_matrix = lumps.capacitance_matrix
     print('capacitance_matrix equals?',capacitance_matrix)
 
+if __name__ == '__main__':
+    file_name = "01_2"
+    json_file_path = "../../Data/" + file_name + ".json"
+    # 0. read json file
+    with open(json_file_path, 'r') as j:
+        load_dict = json.load(j)
 
+    # 1. initialize all elements in the network
+    cable = initialize_cable(load_dict['Cable'][0],50)
+    print(cable.info.HeadTower)
 
 
 # def initialize_measurement(file_name):
