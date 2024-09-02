@@ -52,12 +52,8 @@ class Network:
             for wire in wires:
                 position_obj_start = {wire.start_node.name:[wire.start_node.x+obj.info.HeadTower_pos[0], wire.start_node.y+obj.info.HeadTower_pos[1],
                                       wire.start_node.z+obj.info.HeadTower_pos[2]]}
-                #position_tower_start = self.towers.get(obj.info.HeadTower).info.position
-                #start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
                 position_obj_end = {wire.end_node.name:[wire.end_node.x+obj.info.TailTower_pos[0], wire.end_node.y+obj.info.TailTower_pos[1],
                                     wire.end_node.z+obj.info.TailTower_pos[2]]}
-               # position_tower_end = self.towers.get(obj.info.TailTower).info.position
-                #end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
                 Nt = int(np.ceil(distance(obj.info.HeadTower_pos,obj.info.TailTower_pos)/maxlength))
                 self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name,Nt]
 
@@ -65,7 +61,7 @@ class Network:
 
     # initialize internal network elements
     def initialize_network(self,f0,frq_default,max_length,file_name):
-        json_file_path = "../Data/" + file_name + ".json"
+        json_file_path = "../Data/input/" + file_name + ".json"
         # 0. read json file
         with open(json_file_path, 'r') as j:
             load_dict = json.load(j)
@@ -136,7 +132,17 @@ class Network:
         print("得到一个合并的大矩阵H",H)
         self.H = H
 
-    def H_calculate(self, sources, dt, Nt):
+    def linear_H(self,dt):
+        C = np.array(self.capacitance_matrix)#点点
+        G = np.array(self.conductance_matrix)
+        L = np.array(self.inductance_matrix)#线线
+        R = np.array(self.resistance_matrix)
+        ima = np.array(self.incidence_matrix_A)#线点
+        imb = np.array(self.incidence_matrix_B.T)#点线
+        LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
+        self.H = LEFT
+
+    def solution_calculate(self, dt, Nt):
         """
         【函数功能】电路求解
         【入参】
@@ -160,7 +166,7 @@ class Network:
         R = np.array(self.resistance_matrix)
         ima = np.array(self.incidence_matrix_A)#线点
         imb = np.array(self.incidence_matrix_B.T)#点线
-        source = np.array(sources)
+        source = np.array(network.sources)
 
         nodes = len(self.capacitance_matrix.columns.tolist())
         branches = len(self.inductance_matrix.columns.tolist())
@@ -170,13 +176,13 @@ class Network:
         for i in range(Nt - 1):
             Vnode = out[:nodes, i].reshape((-1,1))
             Ibran = out[nodes:, i].reshape((-1,1))
-#            Isource = source[:,i].reshape((-1,1))
+            Isource = source[:,i].reshape((-1,1))
             LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
             inv_LEFT = np.linalg.inv(LEFT)
             RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
- #           temp_result = inv_LEFT.dot(Isource + RIGHT)
-  #          out[:, i + 1] = np.copy(temp_result)[:,0]
-   #     self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
+            temp_result = inv_LEFT.dot(Isource + RIGHT)
+            out[:, i + 1] = np.copy(temp_result)[:,0]
+        self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
 
     def update_H(self):
 
@@ -198,21 +204,24 @@ class Network:
         Nt = int(np.ceil(T/dt))
         # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
         max_length = 50
-
+        #1. 初始化电网
         Network.initialize_network(network,f0,frq,max_length,file_name)
+
+        # 2. 初始化源，根据电网信息计算源
         network.calculate_branches(max_length)
-        #network.initialize_source(file_name)
-        #source = network.sources
-        source = 0
-        network.H_calculate(source,dt,Nt)
+        network.initialize_source(file_name)
+
+        # 3. 计算结果
+        network.linear_H(dt)
+       # network.solution_calculate(dt,Nt)
         #print(x)
         #print(source)
 
 if __name__ == '__main__':
     # 1. 接收到创建新电网指令
-    file_name = "01_4"
+    file_name = "01_2"
     network = Network()
     network.run(file_name)
-
+    print(network.H)
     # 2. 接收到所需测试的类型
-    network.update_H()
+   # network.update_H()
