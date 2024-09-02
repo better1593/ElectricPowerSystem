@@ -166,6 +166,10 @@ def initialize_OHL(OHL_dict, max_length):
         #  initialize air wire
         wire_air = initialize_OHL_wire(wire)
         wire_air.start_node = [i + j for i, j in zip(wire_air.start_node, OHL_dict['Info']['Tower_head_pos'])]
+        wire_air.start_node.x = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][0]
+        wire_air.start_node.y = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][1]
+        wire_air.start_node.z = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][2
+
         wires.add_air_wire(wire_air)  # add air wire in wires
 
    # wires.display()
