@@ -41,8 +41,8 @@ class Network:
         tower_nodes = []
         for tower in self.towers:
             for wire in list(tower.wires.get_all_wires().values()):
-                startnode = [wire.start_node.x, wire.start_node.y, wire.start_node.z]
-                endnode = [wire.end_node.x, wire.end_node.y, wire.end_node.z]
+                startnode = {wire.start_node.name:[wire.start_node.x, wire.start_node.y, wire.start_node.z]}
+                endnode = {wire.end_node.name:[wire.end_node.x, wire.end_node.y, wire.end_node.z]}
                 tower_nodes.append(startnode)
                 tower_nodes.append(endnode)
                 self.branches[wire.name] = [startnode, endnode, tower.name]
