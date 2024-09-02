@@ -64,8 +64,7 @@ class Network:
 
 
     # initialize internal network elements
-    def initialize_network(self,f0,frq_default,max_length):
-        file_name = "01_3"
+    def initialize_network(self,f0,frq_default,max_length,file_name):
         json_file_path = "../Data/" + file_name + ".json"
         # 0. read json file
         with open(json_file_path, 'r') as j:
@@ -95,8 +94,7 @@ class Network:
         self.combine_parameter_matrix()
 
     # initialize external element
-    def initialize_source(self):
-        file_name = "01_3"
+    def initialize_source(self,file_name):
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
 
@@ -184,7 +182,7 @@ class Network:
 
         print("更新H矩阵",self.H)
 
-    def run(self):
+    def run(self,file_name):
         frq = np.concatenate([
             np.arange(1, 91, 10),
             np.arange(100, 1000, 100),
@@ -201,9 +199,9 @@ class Network:
         # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
         max_length = 50
 
-        Network.initialize_network(network,f0,frq,max_length)
+        Network.initialize_network(network,f0,frq,max_length,file_name)
         network.calculate_branches(max_length)
-        #network.initialize_source()
+        #network.initialize_source(file_name)
         #source = network.sources
         source = 0
         network.H_calculate(source,dt,Nt)
@@ -211,8 +209,10 @@ class Network:
         #print(source)
 
 if __name__ == '__main__':
+    # 1. 接收到创建新电网指令
+    file_name = "01_4"
     network = Network()
-    network.run()
-    print(network.solution)
-    # network.concate_H()
-    # H_invert = pd.DataFrame(np.linalg.pinv(network.H.values), columns=network.H.index, index=network.H.columns)
+    network.run(file_name)
+
+    # 2. 接收到所需测试的类型
+    network.update_H()
