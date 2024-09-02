@@ -18,7 +18,19 @@ def distance(node1, node2):
                      (node1.z - node2[2]) ** 2)
 
 def LightningCurrrent_calculate(p1, p2, position, network, node_index, lightning, stroke_sequence):
-
+    """
+    【功能】
+    计算直击雷的电流源矩阵
+    【输入】
+    p1 (np.array, (n × 3)):
+    :param p2:
+    :param position:
+    :param network:
+    :param node_index:
+    :param lightning:
+    :param stroke_sequence:
+    :return:
+    """
     area = p1.split("_")[0]
     # 1. find the wire that is hit
     selected_wire = None
@@ -69,8 +81,8 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
     U_out (len(pt_start), lightning.strokes[stroke_sequence].Nt): 电压矩阵
     """
     if lightning.type == 'Indirect':
-        Ez_T, Er_T = ElectricField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], channel, constants.ep0, constants.vc)  # 计算电场
-        H_p = H_MagneticField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], channel, constants.ep0, constants.vc)  # 计算磁场
+        Ez_T, Er_T = ElectricField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel, constants.ep0, constants.vc)  # 计算电场
+        H_p = H_MagneticField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel, constants.ep0, constants.vc)  # 计算磁场
 
         # 计算有损地面的电场
         Er_lossy = ElectricField_above_lossy(-H_p, Er_T, constants, constants.sigma)
@@ -79,11 +91,11 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
         # 利用公式U = E * L计算感应电动势
         a00 = pt_start.shape[0]  # 导体段个数
 
-        Rx = (pt_start[:, 0] + pt_end[:, 0]) / 2 - channel.hit_pos[0]
-        Ry = (pt_start[:, 1] + pt_end[:, 1]) / 2 - channel.hit_pos[1]
+        Rx = (pt_start[:, 0] + pt_end[:, 0]) / 2 - lightning.channel.hit_pos[0]
+        Ry = (pt_start[:, 1] + pt_end[:, 1]) / 2 - lightning.channel.hit_pos[1]
         Rxy = np.sqrt(Rx**2 + Ry**2)
 
-        Uout = np.zeros((constants.Nt, a00))  # 初始化矩阵
+        Uout = np.zeros((lightning.strokes[stroke_sequence].Nt, a00))  # 初始化矩阵
 
         for ik in range(a00):
             x1, y1, z1 = pt_start[ik]
@@ -98,6 +110,7 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
                                Er_lossy[:, ik] * cosy * (y1 - y2) +
                                Ez_lossy[:, ik] * (z1 - z2))
 
+        Uout = Uout.T
         return pd.DataFrame(Uout, index=branch_list)
     elif lightning.type == 'Direct':
         Uout = pd.DataFrame(0, index=branch_list, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
