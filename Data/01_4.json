@@ -4,7 +4,8 @@
   "Tower": [
     {
       "name": "tower_1",
-      "info": {
+      "Info": {
+        "name": "tower_1",
         "id": "1",
         "type": "10",
         "Vclass": "10kV",
@@ -13,7 +14,7 @@
           0,
           0
         ],
-        "theta": 0,
+        "Theta": 0,
         "mode_con": 0,
         "mode_gnd": 0,
         "pole_height": 10.5,
@@ -422,7 +423,8 @@
     },
     {
       "name": "tower_2",
-      "info": {
+      "Info": {
+        "name": "tower_1",
         "id": "2",
         "type": "1",
         "Vclass": "10kV",
@@ -431,7 +433,7 @@
           0,
           0
         ],
-        "theta": 0,
+        "Theta": 0,
         "mode_con": 0,
         "mode_gnd": 0,
         "pole_height": 10.5,
@@ -844,7 +846,8 @@
       "name": "OHL_1",
       "Info": {
         "name": "OHL_1",
-        "ID": 1,
+        "type": "type_01",
+        "id": 1,
         "dL": 10,
         "model1": 0,
         "model2": 0,
