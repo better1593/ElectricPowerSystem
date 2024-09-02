@@ -202,9 +202,9 @@ class Network:
         network.initialize_source()
         source = network.sources
         # x = H_invert.dot(source)
-        network.H_calculate(source,dt,Nt)
+        #network.H_calculate(source,dt,Nt)
         #print(x)
-        print(network.H)
+        print(source)
 
 if __name__ == '__main__':
     network = Network()
