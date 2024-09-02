@@ -50,12 +50,12 @@ class Network:
         for obj in self.OHLs+self.cables:
             wires = list(obj.wires.get_all_wires().values())
             for wire in wires:
-                position_obj_start = [wire.start_node.x+obj.info.HeadTower_pos[0], wire.start_node.y+obj.info.HeadTower_pos[1],
-                                      wire.start_node.z+obj.info.HeadTower_pos[2]]
+                position_obj_start = {wire.start_node.name:[wire.start_node.x+obj.info.HeadTower_pos[0], wire.start_node.y+obj.info.HeadTower_pos[1],
+                                      wire.start_node.z+obj.info.HeadTower_pos[2]]}
                 #position_tower_start = self.towers.get(obj.info.HeadTower).info.position
                 #start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
-                position_obj_end = [wire.end_node.x+obj.info.TailTower_pos[0], wire.end_node.y+obj.info.TailTower_pos[1],
-                                    wire.end_node.z+obj.info.TailTower_pos[2]]
+                position_obj_end = {wire.end_node.name:[wire.end_node.x+obj.info.TailTower_pos[0], wire.end_node.y+obj.info.TailTower_pos[1],
+                                    wire.end_node.z+obj.info.TailTower_pos[2]]}
                # position_tower_end = self.towers.get(obj.info.TailTower).info.position
                 #end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
                 self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name]
