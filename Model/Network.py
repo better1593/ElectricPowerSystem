@@ -172,13 +172,13 @@ class Network:
         for i in range(Nt - 1):
             Vnode = out[:nodes, i].reshape((-1,1))
             Ibran = out[nodes:, i].reshape((-1,1))
-            Isource = source[:,i].reshape((-1,1))
+#            Isource = source[:,i].reshape((-1,1))
             LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
-            inv_LEFT = np.linalg.pinv(LEFT)
+            inv_LEFT = np.linalg.inv(LEFT)
             RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
-            temp_result = inv_LEFT.dot(Isource + RIGHT)
-            out[:, i + 1] = np.copy(temp_result)[:,0]
-        self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
+ #           temp_result = inv_LEFT.dot(Isource + RIGHT)
+  #          out[:, i + 1] = np.copy(temp_result)[:,0]
+   #     self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
 
     def update_H(self):
 
@@ -203,12 +203,12 @@ class Network:
 
         Network.initialize_network(network,f0,frq,max_length)
         network.calculate_branches(max_length)
-        network.initialize_source()
-        source = network.sources
-        # x = H_invert.dot(source)
-        #network.H_calculate(source,dt,Nt)
+        #network.initialize_source()
+        #source = network.sources
+        source = 0
+        network.H_calculate(source,dt,Nt)
         #print(x)
-        print(source)
+        #print(source)
 
 if __name__ == '__main__':
     network = Network()
