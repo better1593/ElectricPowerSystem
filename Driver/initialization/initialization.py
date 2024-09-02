@@ -165,10 +165,9 @@ def initialize_OHL(OHL_dict, max_length):
     for wire in OHL_dict['Wire']:
         #  initialize air wire
         wire_air = initialize_OHL_wire(wire)
-        wire_air.start_node = [i + j for i, j in zip(wire_air.start_node, OHL_dict['Info']['Tower_head_pos'])]
-        wire_air.start_node.x = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][0]
-        wire_air.start_node.y = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][1]
-        wire_air.start_node.z = wire.start_node.x + OHL_dict['Info']['Tower_head_pos'][2
+        wire_air.start_node.x = wire_air.start_node.x + OHL_dict['Info']['Tower_head_pos'][0]
+        wire_air.start_node.y = wire_air.start_node.x + OHL_dict['Info']['Tower_head_pos'][1]
+        wire_air.start_node.z = wire_air.start_node.x + OHL_dict['Info']['Tower_head_pos'][2]
 
         wires.add_air_wire(wire_air)  # add air wire in wires
 
@@ -475,18 +474,27 @@ def initialize_cable(cable, max_length):
     wires = Wires()
     nodes = []
     sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
-    sheath_wire.start_node.x = sheath_wire.start_node.x, cable['Info']['T_head_pos'][0]
-    sheath_wire.start_node.y = sheath_wire.start_node.y, cable['Info']['T_head_pos'][1]
-    sheath_wire.start_node.z = sheath_wire.start_node.z, cable['Info']['T_head_pos'][3]
+    sheath_wire.start_node.x = sheath_wire.start_node.x+ cable['Info']['T_head_pos'][0]
+    sheath_wire.start_node.y = sheath_wire.start_node.y+ cable['Info']['T_head_pos'][1]
+    sheath_wire.start_node.z = sheath_wire.start_node.z+ cable['Info']['T_head_pos'][2]
 
-    sheath_wire.end_node = sheath_wire.end_node.x, cable['Info']['T_tail_pos'][0]
+    sheath_wire.end_node.x = sheath_wire.end_node.x + cable['Info']['T_tail_pos'][0]
+    sheath_wire.end_node.y = sheath_wire.end_node.y + cable['Info']['T_tail_pos'][1]
+    sheath_wire.end_node.z = sheath_wire.end_node.z + cable['Info']['T_tail_pos'][2]
     tube_wire = TubeWire(sheath_wire, wire['TubeWire']['sheath']['rs1'], wire['TubeWire']['sheath']['rs3'],
                          wire['TubeWire']['sheath']['core_num'])
 
 
     for core in wire['TubeWire']['core']:
         core_wire = initialize_wire(core, nodes)
-        core_wire.start_node = [i + j for i, j in zip(core_wire.start_node, cable['Info']['T_head_pos'])]
+        core_wire.start_node.x = core_wire.start_node.x +cable['Info']['T_head_pos'][0]
+        core_wire.start_node.y = core_wire.start_node.x + cable['Info']['T_head_pos'][1]
+        core_wire.start_node.z = core_wire.start_node.x + cable['Info']['T_head_pos'][2]
+
+        core_wire.end_node.x = core_wire.end_node.x +cable['Info']['T_tail_pos'][0]
+        core_wire.end_node.y = core_wire.end_node.x + cable['Info']['T_tail_pos'][1]
+        core_wire.end_node.z = core_wire.end_node.x + cable['Info']['T_tail_pos'][2]
+
         tube_wire.add_core_wire(core_wire)
 
     wires.add_tube_wire(tube_wire)
