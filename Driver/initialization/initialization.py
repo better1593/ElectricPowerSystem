@@ -107,7 +107,7 @@ def initialize_tower(tower_dict, max_length):
     # tower_dict['Wire']
     # 1. initialize wires
     wires = Wires()
-    tube_wire = TubeWire(None, None, None, None)
+    tube_wire = None
     nodes = []
     for wire in tower_dict['Wire']:
 

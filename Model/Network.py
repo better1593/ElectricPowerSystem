@@ -14,7 +14,7 @@ from Model.Cable import Cable
 from Model.Lightning import Lightning
 from Model.Tower import Tower
 from Model.Wires import OHLWire
-
+from Utils.Math import distance
 
 class Network:
     def __init__(self, **kwargs):
@@ -36,7 +36,7 @@ class Network:
         self.voltage_source_matrix = pd.DataFrame()
         self.current_source_matrix = pd.DataFrame()
 
-    def calculate_branches(self):
+    def calculate_branches(self,maxlength):
         tower_branch_node = {}
         tower_nodes = []
         for tower in self.towers:
@@ -58,23 +58,27 @@ class Network:
                                     wire.end_node.z+obj.info.TailTower_pos[2]]}
                # position_tower_end = self.towers.get(obj.info.TailTower).info.position
                 #end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
-                self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name]
+                Nt = int(np.ceil(distance(obj.info.HeadTower_pos,obj.info.TailTower_pos)/maxlength))
+                self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name,Nt]
 
 
 
     # initialize internal network elements
     def initialize_network(self,f0,frq_default,max_length):
-        file_name = "01_2"
+        file_name = "01_3"
         json_file_path = "../Data/" + file_name + ".json"
         # 0. read json file
         with open(json_file_path, 'r') as j:
             load_dict = json.load(j)
 
         # 1. initialize all elements in the network
-        self.towers = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
+        if 'Tower' in load_dict:
+            self.towers = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
         #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
-        self.OHLs = [initialize_OHL(ohl, max_length=max_length) for ohl in load_dict['OHL']]
-        self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
+        if 'OHL' in load_dict:
+            self.OHLs = [initialize_OHL(ohl, max_length=max_length) for ohl in load_dict['OHL']]
+        if 'Cable' in load_dict:
+            self.cables = [initialize_cable(cable, max_length=max_length) for cable in load_dict['Cable']]
 
         # 2. build dedicated matrix for all elements
         # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
@@ -92,7 +96,7 @@ class Network:
 
     # initialize external element
     def initialize_source(self):
-        file_name = "01_2"
+        file_name = "01_3"
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
 
@@ -198,7 +202,7 @@ class Network:
         max_length = 50
 
         Network.initialize_network(network,f0,frq,max_length)
-        network.calculate_branches()
+        network.calculate_branches(max_length)
         network.initialize_source()
         source = network.sources
         # x = H_invert.dot(source)
