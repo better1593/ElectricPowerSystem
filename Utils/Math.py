@@ -1,5 +1,11 @@
 import numpy as np
+import math
 
+
+def distance(pos1, pos2):
+    return math.sqrt((pos1[0] - pos2[0]) ** 2 +
+                     (pos1[1] - pos2[1]) ** 2 +
+                     (pos1[2] - pos2[2]) ** 2)
 
 def Bessel_K2(z, n1, n2):
     """
@@ -57,6 +63,34 @@ def calculate_distances(points1, points2):
         distances[i] = np.sum((points1[i] - points2[i])**2)
     
     return distances
+
+
+import numpy as np
+
+
+def segment_lines(A, B, N):
+    # 检验输入矩阵的形状
+    if A.shape[1] != 3 or B.shape[1] != 3 or A.shape[0] != B.shape[0]:
+        raise ValueError("矩阵A和B必须有相同的行数，并且每行有3列。")
+
+    # 获取线段数量
+    num_segments = A.shape[0]
+
+    # 初始化新的起点和终点矩阵
+    new_start_points = np.zeros((num_segments * N, 3))
+    new_end_points = np.zeros((num_segments * N, 3))
+
+    # 计算每段的向量增量
+    for i in range(num_segments):
+        start_point = A[i, :]
+        end_point = B[i, :]
+        vector = (end_point - start_point) / N
+
+        for j in range(N):
+            new_start_points[i * N + j, :] = start_point + j * vector
+            new_end_points[i * N + j, :] = start_point + (j + 1) * vector
+
+    return new_start_points, new_end_points
 
 
 def calculate_direction_cosines(start_points, end_points, lengths):
@@ -160,7 +194,8 @@ def calculate_electric_field_down_r_and_z(pt_start, pt_end, stroke, channel, z_c
     t_sr_expand = np.tile(t_sr, (a00, b00, 1))  # 变成 (1, 1, 2000)
 
     # 计算时间延迟，获取时间索引
-    n_td_tmp = np.floor((t_sr_expand * 1e-6 - t_delay_expand) / stroke.dt).astype(int)
+    n_td_tmp = np.floor((t_sr_expand - t_delay_expand) / stroke.dt).astype(int)
+    # n_td_tmp = np.floor((t_sr_expand * 1e-6 - t_delay_expand) / stroke.dt).astype(int)
     index_head = np.apply_along_axis(get_t_delay_index1, 2, n_td_tmp)
     index_tail = np.apply_along_axis(get_t_delay_index2, 2, n_td_tmp)
     index_head = np.where(index_head == 1)
@@ -273,7 +308,8 @@ def calculate_H_magnetic_field_down_r(pt_start, pt_end, stroke, channel, z_chann
     t_sr_expand = np.tile(t_sr, (a00, b00, 1))  # 变成 (1, 1, 2000)
 
     # 计算时间延迟，获取时间索引
-    n_td_tmp = np.floor((t_sr_expand * 1e-6 - t_delay_expand) / stroke.dt).astype(int)
+    n_td_tmp = np.floor((t_sr_expand - t_delay_expand) / stroke.dt).astype(int)
+    # n_td_tmp = np.floor((t_sr_expand * 1e-6 - t_delay_expand) / stroke.dt).astype(int)
     index_head = np.apply_along_axis(get_t_delay_index1, 2, n_td_tmp)
     index_tail = np.apply_along_axis(get_t_delay_index2, 2, n_td_tmp)
     index_head = np.where(index_head == 1)
