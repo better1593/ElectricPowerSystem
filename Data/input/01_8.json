@@ -1061,6 +1061,6 @@
     {
       "area": "tower_1",
       "wire": "Y01",
-      "position": [0,0,10.5]
+      "position": [50,0,10.5]
     }
 }
