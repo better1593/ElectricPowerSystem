@@ -385,10 +385,10 @@ def initial_source(network, nodes, file_name):
     with open(json_file_path, 'r') as j:
         load_dict = json.load(j)
 
-    stroke = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='0.25/100us', parameters=None)
+    stroke = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='2.6/50us', parameters=None)
     stroke.calculate()
-    channel = Channel(hit_pos=[500, 50, 0])
-    lightning =Lightning(id=1, type='Indirect', strokes=[stroke], channel=channel)
+    channel = Channel(hit_pos=[10, 10, 0])
+    lightning =Lightning(id=1, type='Direct', strokes=[stroke], channel=channel)
     branches = network.branches.copy()  # branches的副本，用于新增或删减支路
     for key, value in network.branches.items():
         keys_tobe_delete = []

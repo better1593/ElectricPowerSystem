@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from functools import reduce
 
-from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump, \
-    initialize_cable
+from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump,initialize_cable
 from Driver.modeling.OHL_modeling import OHL_building
 from Driver.modeling.cable_modeling import cable_building
 from Driver.modeling.tower_modeling import tower_building
@@ -148,7 +147,7 @@ class Network:
                         time_controled_switch.bran[0], time_controled_switch.bran[0]] = resistance
 
                 for nolinear_resistor in lumps.nolinear_resistors:
-                    component_current = current_result.loc[nolinear_resistor.bran, 0].values
+                    component_current = abs(current_result.loc[nolinear_resistor.bran, 0].values)
                     resistance = nolinear_resistor.update_parameter(component_current)
                     self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
@@ -167,9 +166,9 @@ class Network:
               'frq': frq}
         f0 = 2e4 # 固频的频率值
         self.dt = 1e-6
-        self.T = 0.001
+        self.T = 0.01
         self.Nt = int(np.ceil(self.T/self.dt))
-        max_length = 50 # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
+        max_length = 20 # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
 
         #1. 初始化电网
         self.initialize_network(f0,frq,max_length,file_name)
