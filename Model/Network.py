@@ -15,6 +15,7 @@ from Model.Lightning import Lightning
 from Model.Tower import Tower
 from Model.Wires import OHLWire
 from Utils.Math import distance
+import Model.Strategy as Strategy
 
 class Network:
     def __init__(self, **kwargs):
@@ -35,40 +36,52 @@ class Network:
         self.conductance_matrix = pd.DataFrame()
         self.voltage_source_matrix = pd.DataFrame()
         self.current_source_matrix = pd.DataFrame()
+        self.solution_type = {
+            'linear': False,
+            'constant_step': True,
+            'variable_frequency': False
+        }
+        self.dt = 0
+        self.Nt = 0
+        self.T = 0
 
-    def calculate_branches(self,maxlength):
+    def calculate_branches(self, maxlength):
         tower_branch_node = {}
         tower_nodes = []
         for tower in self.towers:
             for wire in list(tower.wires.get_all_wires().values()):
-                startnode = {wire.start_node.name:[wire.start_node.x, wire.start_node.y, wire.start_node.z]}
-                endnode = {wire.end_node.name:[wire.end_node.x, wire.end_node.y, wire.end_node.z]}
+                startnode = {wire.start_node.name: [wire.start_node.x, wire.start_node.y, wire.start_node.z]}
+                endnode = {wire.end_node.name: [wire.end_node.x, wire.end_node.y, wire.end_node.z]}
                 tower_nodes.append(startnode)
                 tower_nodes.append(endnode)
                 self.branches[wire.name] = [startnode, endnode, tower.name]
 
-        for obj in self.OHLs+self.cables:
+        for obj in self.OHLs + self.cables:
             wires = list(obj.wires.get_all_wires().values())
             for wire in wires:
-                position_obj_start = {wire.start_node.name:[wire.start_node.x+obj.info.HeadTower_pos[0], wire.start_node.y+obj.info.HeadTower_pos[1],
-                                      wire.start_node.z+obj.info.HeadTower_pos[2]]}
-                position_obj_end = {wire.end_node.name:[wire.end_node.x+obj.info.TailTower_pos[0], wire.end_node.y+obj.info.TailTower_pos[1],
-                                    wire.end_node.z+obj.info.TailTower_pos[2]]}
-                Nt = int(np.ceil(distance(obj.info.HeadTower_pos,obj.info.TailTower_pos)/maxlength))
-                self.branches[wire.name]=[position_obj_start,position_obj_end,obj.info.name,Nt]
-
-
+                position_obj_start = {wire.start_node.name: [wire.start_node.x + obj.info.HeadTower_pos[0],
+                                                             wire.start_node.y + obj.info.HeadTower_pos[1],
+                                                             wire.start_node.z + obj.info.HeadTower_pos[2]]}
+                # position_tower_start = self.towers.get(obj.info.HeadTower).info.position
+                # start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
+                position_obj_end = {wire.end_node.name: [wire.end_node.x + obj.info.TailTower_pos[0],
+                                                         wire.end_node.y + obj.info.TailTower_pos[1],
+                                                         wire.end_node.z + obj.info.TailTower_pos[2]]}
+                # position_tower_end = self.towers.get(obj.info.TailTower).info.position
+                # end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
+                Nt = int(np.ceil(distance(obj.info.HeadTower_pos, obj.info.TailTower_pos) / maxlength))
+                self.branches[wire.name] = [position_obj_start, position_obj_end, obj.info.name, Nt]
 
     # initialize internal network elements
     def initialize_network(self,f0,frq_default,max_length,file_name):
-        json_file_path = "../Data/input/" + file_name + ".json"
+        json_file_path = "Data/input/" + file_name + ".json"
         # 0. read json file
         with open(json_file_path, 'r') as j:
             load_dict = json.load(j)
 
         # 1. initialize all elements in the network
         if 'Tower' in load_dict:
-            self.towers = [initialize_tower(tower, max_length=max_length) for tower in load_dict['Tower']]
+            self.towers = [initialize_tower(tower, max_length=max_length,dt=self.dt,T = self.T) for tower in load_dict['Tower']]
         #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
         if 'OHL' in load_dict:
             self.OHLs = [initialize_OHL(ohl, max_length=max_length) for ohl in load_dict['OHL']]
@@ -80,17 +93,17 @@ class Network:
         # segment_length = 50  # 预设的参数
         for tower in self.towers:
             tower_building(tower, f0, max_length)
-        for ohl in self.OHLs:
-            OHL_building(ohl, max_length,frq_default)
-        for cable in self.cables:
-            cable_building(cable,f0,frq_default)
 
+        for ohl in self.OHLs:
+            OHL_building(ohl, max_length, frq_default)
+        for cable in self.cables:
+            cable_building(cable, f0, frq_default)
 
         # 3. combine matrix
         self.combine_parameter_matrix()
 
     # initialize external element
-    def initialize_source(self,file_name):
+    def initialize_source(self, file_name):
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources = initial_source(self, nodes, file_name)
 
@@ -106,7 +119,7 @@ class Network:
            # self.voltage_source_matrix.add(tower.voltage_source_matrix, fill_value=0).fillna(0)
            # self.current_source_matrix.add(tower.current_source_matrix, fill_value=0).fillna(0)
 
-        for model_list in [self.OHLs,self.cables]:
+        for model_list in [self.OHLs, self.cables]:
             for model in model_list:
                 self.incidence_matrix_A = self.incidence_matrix_A.add(model.incidence_matrix, fill_value=0).fillna(0)
                 self.incidence_matrix_B = self.incidence_matrix_B.add(model.incidence_matrix, fill_value=0).fillna(0)
@@ -117,78 +130,33 @@ class Network:
              #   self.voltage_source_matrix.add(model.voltage_source_matrix, fill_value=0).fillna(0)
              #   self.current_source_matrix.add(model.current_source_matrix, fill_value=0).fillna(0)
 
+    def update_H(self, current_result, time):
+        for tower in self.towers:
+            for ith, lumps in enumerate(
+                    [tower.lump] + tower.devices.insulators + tower.devices.arrestors + tower.devices.transformers):
+                for component_list in [lumps.switch_disruptive_effect_models, lumps.voltage_controled_switchs]:
+                    for component in component_list:
+                        v1 = current_result.loc[component.node1, 0].values if component.node1 != 'ref' else 0
+                        v2 = current_result.loc[component.node2, 0].values if component.node2 != 'ref' else 0
 
-    def concate_H(self):
-        GC = self.capacitance_matrix.add(self.conductance_matrix)#点点
-        RL = self.inductance_matrix.add(self.resistance_matrix)#线线
-        A = self.incidence_matrix_A#线点
-        A_T = self.incidence_matrix_B.T#点线
+                        resistance = component.update_parameter(v1, v2)
+                        self.resistance_matrix.loc[component.bran[0], component.bran[0]] = resistance
 
-        A_RL = pd.concat([-A, RL], axis=1)
-        GC_A = pd.concat([GC, -A_T], axis=1)
+                for time_controled_switch in lumps.time_controled_switchs:
+                    resistance = time_controled_switch.update_parameter(time)
+                    self.resistance_matrix.loc[
+                        time_controled_switch.bran[0], time_controled_switch.bran[0]] = resistance
 
-        H = pd.concat([A_RL, GC_A], axis=0)
+                for nolinear_resistor in lumps.nolinear_resistors:
+                    component_current = current_result.loc[nolinear_resistor.bran, 0].values
+                    resistance = nolinear_resistor.update_parameter(component_current)
+                    self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
-        print("得到一个合并的大矩阵H",H)
-        self.H = H
+    def calculate(self,strategy):
+        strategy.apply(self)
 
-    def linear_H(self,dt):
-        C = np.array(self.capacitance_matrix)#点点
-        G = np.array(self.conductance_matrix)
-        L = np.array(self.inductance_matrix)#线线
-        R = np.array(self.resistance_matrix)
-        ima = np.array(self.incidence_matrix_A)#线点
-        imb = np.array(self.incidence_matrix_B.T)#点线
-        LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
-        self.H = LEFT
-
-    def solution_calculate(self, dt, Nt):
-        """
-        【函数功能】电路求解
-        【入参】
-        ima(numpy.ndarray:Nbran*Nnode)：关联矩阵A（Nbran：支路数，Nnode：节点数）
-        imb(numpy.ndarray:Nbran*Nnode)：关联矩阵B（Nbran：支路数，Nnode：节点数）
-        R(numpy.ndarray:Nbran*Nbran)：电阻矩阵（Nbran：支路数）
-        L(numpy.ndarray:Nbran*Nbran)：电感矩阵（Nbran：支路数）
-        G(numpy.ndarray:Nnode*Nnode)：电导矩阵（Nnode：节点数）
-        C(numpy.ndarray:Nnode*Nnode)：电容矩阵（Nnode：节点数）
-        sources(numpy.ndarray:(Nbran+Nnode)*Nt)：电源矩阵（Nbran：支路数，Nnode：节点数）
-        dt(float)：步长
-        Nt(int)：计算总次数
-
-        【出参】
-        out(numpy.ndarray:(Nbran+Nnode)*Nt)：计算结果矩阵（Nbran：支路数，Nnode：节点数）
-        """
-
-        C = np.array(self.capacitance_matrix)#点点
-        G = np.array(self.conductance_matrix)
-        L = np.array(self.inductance_matrix)#线线
-        R = np.array(self.resistance_matrix)
-        ima = np.array(self.incidence_matrix_A)#线点
-        imb = np.array(self.incidence_matrix_B.T)#点线
-        source = np.array(network.sources)
-
-        nodes = len(self.capacitance_matrix.columns.tolist())
-        branches = len(self.inductance_matrix.columns.tolist())
-
-        out = np.zeros((branches + nodes, Nt))
-        branches, nodes = ima.shape
-        for i in range(Nt - 1):
-            Vnode = out[:nodes, i].reshape((-1,1))
-            Ibran = out[nodes:, i].reshape((-1,1))
-            Isource = source[:,i].reshape((-1,1))
-            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
-            inv_LEFT = np.linalg.inv(LEFT)
-            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
-            temp_result = inv_LEFT.dot(Isource + RIGHT)
-            out[:, i + 1] = np.copy(temp_result)[:,0]
-        self.solution = pd.DataFrame(out, index=self.capacitance_matrix.columns.tolist()+self.inductance_matrix.columns.tolist())
-
-    def update_H(self):
-
-        print("更新H矩阵",self.H)
-
-    def run(self,file_name):
+    def run(self,file_name,strategy):
+        # 0. 预设值
         frq = np.concatenate([
             np.arange(1, 91, 10),
             np.arange(100, 1000, 100),
@@ -197,31 +165,22 @@ class Network:
         ])
         VF = {'odc': 10,
               'frq': frq}
-        # 固频的频率值
-        f0 = 2e4
-        dt = 1e-6
-        T = 0.001
-        Nt = int(np.ceil(T/dt))
-        # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
-        max_length = 50
+        f0 = 2e4 # 固频的频率值
+        self.dt = 1e-6
+        self.T = 0.001
+        self.Nt = int(np.ceil(self.T/self.dt))
+        max_length = 50 # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
+
         #1. 初始化电网
-        Network.initialize_network(network,f0,frq,max_length,file_name)
+        self.initialize_network(f0,frq,max_length,file_name)
 
         # 2. 初始化源，根据电网信息计算源
-        network.calculate_branches(max_length)
-        network.initialize_source(file_name)
+        self.calculate_branches(max_length)
+        self.initialize_source(file_name)
 
         # 3. 计算结果
-        network.linear_H(dt)
-       # network.solution_calculate(dt,Nt)
+        self.calculate(strategy)
+        #network.solution_calculate(dt,Nt)
         #print(x)
         #print(source)
 
-if __name__ == '__main__':
-    # 1. 接收到创建新电网指令
-    file_name = "01_2"
-    network = Network()
-    network.run(file_name)
-    print(network.H)
-    # 2. 接收到所需测试的类型
-   # network.update_H()

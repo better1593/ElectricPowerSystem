@@ -67,15 +67,46 @@ def build_potential_matrix(tower, P):
     print("------------------------------------------------")
     print("P_tower matrix is building...")
 
+    Nair = tower.wires.count_distinct_airPoints()
+    Ngnd = tower.wires.count_distinct_gndPoints()
+    Pg = np.copy(P)
+    Pg[Nair:Nair + Ngnd] = Pg[Nair:Nair+Ngnd]/tower.ground.epr
+
     tower.initialize_potential_matrix()
 
-    tower.add_potential_matrix(P)
+    tower.add_potential_matrix(Pg)
+
+
 
     #构建P矩阵df表，便于后续索引
     # df_R = pd.DataFrame(tower.potential_matrix, index=tower.wires_name, columns=tower.wires_name)
     # print(df_R)
     #print(tower.potential_matrix)
     print("P matrix is built successfully")
+    print("------------------------------------------------")
+
+
+def build_conductance_matrix(tower, P, constants):
+    # P矩阵
+    print("------------------------------------------------")
+    print("G_tower matrix is building...")
+
+    ep0 = constants.ep0
+    k = ep0/tower.ground.sig
+    Nair = tower.wires.count_distinct_airPoints()
+    Ngnd = tower.wires.count_distinct_gndPoints()
+    G = np.zeros_like(P)
+    G[Nair:Nair+Ngnd] = k * P[Nair:Nair + Ngnd]
+
+    tower.initialize_conductance_matrix()
+
+    tower.add_conductance_matrix(G)
+
+    # 构建P矩阵df表，便于后续索引
+    # df_R = pd.DataFrame(tower.potential_matrix, index=tower.wires_name, columns=tower.wires_name)
+    # print(df_R)
+    # print(tower.potential_matrix)
+    print("G matrix is built successfully")
     print("------------------------------------------------")
 
 #C
@@ -183,7 +214,10 @@ def tower_building(tower, frequency, max_length):
     # 5. 构建C矩阵
     build_capacitance_matrix(tower, Cin)
 
-    # 6. 合并lumps和tower
+    # 6. 构建G矩阵, node*node
+    build_conductance_matrix(tower, P, constants)
+
+    # 7. 合并lumps和tower
     tower.combine_parameter_matrix()
 
 
