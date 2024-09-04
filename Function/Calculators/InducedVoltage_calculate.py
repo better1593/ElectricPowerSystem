@@ -284,3 +284,31 @@ def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
 
     return Er_lossy
 
+
+if __name__ == "__main__":
+    # 定义lightning
+    stroke1 = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='0.25/100us', parameters=None)
+    stroke1.calculate()
+    channel = Channel(hit_pos=[500, 50, 0])
+    lightning = Lightning(id=1, type='Direct', strokes=[stroke1], channel=channel)
+    # 定义常数
+    constants = Constant()
+    constants.ep0 = 8.85e-12
+
+    Nodes = ['X01', 'X02', 'X03']
+    node = 'X02'
+    I = LightningCurrent_calculate(Nodes=Nodes, node=node, lightning=lightning, stroke_sequence=0)
+    print(I.loc[node, 999])
+    pt_start = pd.read_excel('pt_start.xlsx', header=None)
+    pt_start = pt_start.to_numpy()
+    pt_end = pd.read_excel('pt_end.xlsx', header=None)
+    pt_end = pt_end.to_numpy()
+    U_out = InducedVoltage_calculate(pt_start, pt_end, lightning, 0, constants)
+    print('END')
+
+    # i_sr = pd.read_excel('i_sr.xlsx', header=None)
+    # i_sr = i_sr.to_numpy()
+    # stroke.current_waveform = i_sr
+    # constants = Constant()
+    # constants.ep0 = 8.85e-12
+    # U_out = InducedVoltage_calculate(pt_start, pt_end, stroke, constants)
