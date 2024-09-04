@@ -50,6 +50,7 @@ class baseStrategy(Strategy):
             LEFT = np.block([[-ima, -R - L / network.dt], [G + C / network.dt, -imb]])
             inv_LEFT = np.linalg.inv(LEFT)
             RIGHT = np.block([[(-L / network.dt).dot(Ibran)], [(C / network.dt).dot(Vnode)]])
+            #temp_result = inv_LEFT.dot(RIGHT)
             temp_result = inv_LEFT.dot(Isource + RIGHT)
             out[:, i + 1] = np.copy(temp_result)[:,0]
         network.solution = pd.DataFrame(out, index=network.capacitance_matrix.columns.tolist()+network.inductance_matrix.columns.tolist())
