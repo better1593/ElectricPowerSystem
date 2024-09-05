@@ -166,7 +166,7 @@ class Network:
               'frq': frq}
         f0 = 2e4 # 固频的频率值
         self.dt = 1e-6
-        self.T = 0.01
+        self.T = 0.001
         self.Nt = int(np.ceil(self.T/self.dt))
         max_length = 20 # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
 
