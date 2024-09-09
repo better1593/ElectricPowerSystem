@@ -72,11 +72,7 @@ class Network:
                 self.branches[wire.name] = [position_obj_start, position_obj_end, obj.info.name, Nt]
 
     # initialize internal network elements
-    def initialize_network(self,f0,frq_default,max_length,file_name):
-        json_file_path = "Data/input/" + file_name + ".json"
-        # 0. read json file
-        with open(json_file_path, 'r') as j:
-            load_dict = json.load(j)
+    def initialize_network(self,f0,frq_default,max_length,load_dict):
 
         # 1. initialize all elements in the network
         if 'Tower' in load_dict:
@@ -155,6 +151,11 @@ class Network:
         strategy.apply(self)
 
     def run(self,file_name,strategy):
+
+        json_file_path = "Data/input/" + file_name + ".json"
+        # 0. read json file
+        with open(json_file_path, 'r') as j:
+            load_dict = json.load(j)
         # 0. 预设值
         frq = np.concatenate([
             np.arange(1, 91, 10),
@@ -165,21 +166,23 @@ class Network:
         VF = {'odc': 10,
               'frq': frq}
         f0 = 2e4 # 固频的频率值
+        stroke_num = len(load_dict["Source"])
         self.dt = 1e-6
-        self.T = 0.001
+        self.T = 0.001 * stroke_num
         self.Nt = int(np.ceil(self.T/self.dt))
         max_length = 20 # 线段的最大长度, 后续会按照这个长度, 对不符合长度规范的线段进行切分
 
         #1. 初始化电网
-        self.initialize_network(f0,frq,max_length,file_name)
+        self.initialize_network(f0, frq, max_length, load_dict)
 
         # 2. 初始化源，根据电网信息计算源
         self.calculate_branches(max_length)
-        self.initialize_source(file_name)
 
-        # 3. 计算结果
-        self.calculate(strategy)
-        #network.solution_calculate(dt,Nt)
-        #print(x)
+        # 3. 初始化源，计算结果
+        for i in range(len(load_dict["Source"])):
+            self.initialize_source(load_dict["Source"][i])
+            self.calculate(strategy)
+            #network.solution_calculate(dt,Nt)
+            #print(x)
         #print(source)
 

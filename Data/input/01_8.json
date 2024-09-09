@@ -1057,10 +1057,11 @@
       }
     }
   ],
-        "Source":
-    {
-      "area": "tower_1",
-      "wire": "Y02",
-      "position": [0,-0.4,9.8]
-    }
+        "Source": [
+      {
+        "area": "tower_1",
+        "wire": "Y02",
+        "position": [0,-0.4,9.8]
+      }
+   ]
 }

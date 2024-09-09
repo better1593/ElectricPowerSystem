@@ -379,11 +379,9 @@ def initial_device(device_data, dt, T):
 
     return devices
 
-def initial_source(network, nodes, file_name):
-    json_file_path = "Data/input/" + file_name + ".json"
+def initial_source(network, nodes, load_dict):
     # 0. read json file
-    with open(json_file_path, 'r') as j:
-        load_dict = json.load(j)
+
 
     stroke = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='2.6/50us', parameters=None)
     stroke.calculate()
@@ -417,7 +415,7 @@ def initial_source(network, nodes, file_name):
     constants.ep0 = 8.85e-12
 
     U_out = InducedVoltage_calculate(pt_start, pt_end, branches, lightning, stroke_sequence=0, constants=constants)
-    I_out = LightningCurrrent_calculate(load_dict["Source"]["area"], load_dict["Source"]["wire"], load_dict["Source"]["position"], network, nodes, lightning, stroke_sequence=0)
+    I_out = LightningCurrrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"], network, nodes, lightning, stroke_sequence=0)
    # Source_Matrix = pd.concat([I_out, U_out], axis=0)
     lumps = [tower.lump for tower in network.towers]
     devices = [tower.devices for tower in network.towers]

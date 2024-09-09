@@ -109,3 +109,7 @@ class NonLiear(Strategy):
         network.solution = pd.DataFrame(out,
                                      index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
+class Monteclarlo(Strategy):
+    def apply(self, network):
+        print("montecarlo")
+
