@@ -16,7 +16,7 @@ def build_incidence_matrix(OHL, segment_num):
     incidence_martix = np.zeros((len(OHL.wires_name), len(OHL.nodes_name)))
     wires_num = OHL.phase_num
 
-    for i in range(segment_num):
+    for i in range(segment_num*wires_num):
         incidence_martix[i, i] = -1
         incidence_martix[i, i+wires_num] = 1
 
@@ -95,31 +95,30 @@ def build_conductance_matrix(OHL):
     print("------------------------------------------------")
 
 # Z矩阵
-def build_impedance_matrix(OHL, Lm, constants, frequency):
+def build_impedance_matrix(OHL, Lm, constants, frequency, ground):
     # Z矩阵
     print("------------------------------------------------")
     print("Z_OHL matrix is building...")
     OHL.impedance_martix = calculate_OHL_impedance(OHL.wires.get_radii(), OHL.wires.get_mur(), OHL.wires.get_sig(), OHL.wires.get_epr(),
-                                OHL.wires.get_offsets(), OHL.wires.get_heights(), OHL.ground.sig, OHL.ground.mur,
-                                OHL.ground.epr, Lm, constants, frequency)
+                                OHL.wires.get_offsets(), OHL.wires.get_heights(), ground.sig, ground.mur,
+                                ground.epr, Lm, constants, frequency)
 
     print("Z_OHL matrix is built successfully")
     print("------------------------------------------------")
 
-def OHL_building(OHL,  max_length, frequency):
+def OHL_building(OHL,  max_length, frequency, ground):
     print("------------------------------------------------")
     print(f"OHL:{OHL.info.name} building...")
     # 0.参数准备
     constants = Constant()
     OHL_r = OHL.wires.get_radii()
     OHL_height = OHL.wires.get_heights()
-    start_node = OHL.wires.get_start_points()
     length = distance(OHL.info.HeadTower_pos,OHL.info.TailTower_pos)
 
     segment_num = int(np.ceil(length / max_length))
     segment_length = length/segment_num
 
-    Lm = calculate_OHL_mutual_inductance(OHL_r, OHL_height, start_node[:, 1], constants)
+    Lm = calculate_OHL_mutual_inductance(OHL_r, OHL_height, OHL.wires.get_offsets(), constants)
 
     OHL.get_brans_nodes_list(segment_num)
 
@@ -139,6 +138,6 @@ def OHL_building(OHL,  max_length, frequency):
     build_conductance_matrix(OHL)
 
     # 6. 构建Z矩阵
-    build_impedance_matrix(OHL, Lm, constants, frequency)
+    build_impedance_matrix(OHL, Lm, constants, frequency, ground)
     print(f"OHL:{OHL.info.name} building is completed.")
     print("------------------------------------------------")

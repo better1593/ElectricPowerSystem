@@ -29,7 +29,7 @@ class LinearStrategy(Strategy):
         return LEFT
 
 class baseStrategy(Strategy):
-    def apply(self,network):
+    def apply(self,network,dt,Nt):
 
         C = np.array(network.capacitance_matrix)#点点
         G = np.array(network.conductance_matrix)

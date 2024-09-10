@@ -22,7 +22,7 @@ from Model.Device import Devices
 
 
 # initialize wire in tower
-def initialize_wire(wire, nodes):
+def initialize_wire(wire, nodes,VF):
     bran = wire['bran']
     node_name_start = wire['node1']
     pos_start = wire['pos_1']
@@ -39,14 +39,7 @@ def initialize_wire(wire, nodes):
     epr = wire['epr']
     # 自定义一个VF
     # 初始化向量拟合参数
-    frq = np.concatenate([
-        np.arange(1, 91, 10),
-        np.arange(100, 1000, 100),
-        np.arange(1000, 10000, 1000),
-        np.arange(10000, 100000, 10000),
-    ])
-    VF = {'odc': 10,
-          'frq': frq}
+
     if wire['type'] == 'air' or wire['type'] == 'sheath' or wire['type'] == 'ground':
         radius = wire['r0']
         return Wire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF)
@@ -103,7 +96,7 @@ def initialize_ground(ground_dic):
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
 
-def initialize_tower(tower_dict, max_length, dt, T):
+def initialize_tower(tower_dict, max_length, dt, T,VF):
 
 
     # tower_dict['Wire']
@@ -115,21 +108,21 @@ def initialize_tower(tower_dict, max_length, dt, T):
 
         # 1.1 initialize air wire
         if wire['type'] == 'air':
-            wire_air = initialize_wire(wire, nodes)
+            wire_air = initialize_wire(wire, nodes,VF)
             wires.add_air_wire(wire_air)  # add air wire in wires
 
         # 1.2 initialize ground wire
         elif wire['type'] == 'ground':
-            wire_ground = initialize_wire(wire, nodes)
+            wire_ground = initialize_wire(wire, nodes,VF)
             wires.add_ground_wire(wire_ground)  # add ground wire in wires
 
         # 1.3 initialize tube
         elif wire['type'] == 'tube':
-            sheath_wire = initialize_wire(wire['sheath'], nodes)
+            sheath_wire = initialize_wire(wire['sheath'], nodes,VF)
             tube_wire = TubeWire(sheath_wire, wire['sheath']['rs1'], wire['sheath']['rs3'], wire['sheath']['num'])
 
             for core in wire['core']:
-                core_wire = initialize_wire(core, nodes)
+                core_wire = initialize_wire(core, nodes,VF)
                 tube_wire.add_core_wire(core_wire)
 
             wires.add_tube_wire(tube_wire)  # add tube in wires
@@ -317,7 +310,6 @@ def initial_lump(lump_data, dt, T):
                 lumps.add_nolinear_f(
                     Nolinear_F(name, bran_name, node1, node2, inductance, bh_characteristic, type_of_data))
             case 'SWV':
-
                 resistance = lump['value1']
                 voltage = lump['value3']
                 type_of_data = lump['data_type']
@@ -352,6 +344,13 @@ def initial_lump(lump_data, dt, T):
                     k = lump['value4']
                 lumps.add_switch_disruptive_effect_model(
                     Switch_Disruptive_Effect_Model(name, bran_name, node1, node2, resistance, 0, DE_max, v_initial, k))
+            case 'MTCK':
+                dist = np.array(lump['distance'])
+                high = np.array(lump['high'])
+                radius = np.array(lump['r0'])
+
+
+
     # 获取器件不重复的支路列表和节点列表
     lumps.brans_nodes_list_initial()
     # 初始化Lumps参数矩阵
@@ -379,14 +378,14 @@ def initial_device(device_data, dt, T):
 
     return devices
 
-def initial_source(network, nodes, load_dict):
+def initial_source(network, nodes, load_dict,duration,dt):
     # 0. read json file
 
+    stroke = Stroke('Heidler', duration=duration, dt=dt, is_calculated=True, parameter_set='2.6/50us', parameters=None)
 
-    stroke = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='2.6/50us', parameters=None)
     stroke.calculate()
-    channel = Channel(hit_pos=[10, 10, 0])
-    lightning =Lightning(id=1, type='Direct', strokes=[stroke], channel=channel)
+    channel = Channel(hit_pos=[500, 50, 0])
+    lightning =Lightning(id=1, type='Indirect', strokes=[stroke], channel=channel)
     branches = network.branches.copy()  # branches的副本，用于新增或删减支路
     for key, value in network.branches.items():
         keys_tobe_delete = []
@@ -441,7 +440,7 @@ def initialize_cable(cable, max_length):
     wire = cable
     wires = Wires()
     nodes = []
-    sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes)
+    sheath_wire = initialize_wire(wire['TubeWire']['sheath'], nodes,VF)
     sheath_wire.start_node.x = sheath_wire.start_node.x+ cable['Info']['T_head_pos'][0]
     sheath_wire.start_node.y = sheath_wire.start_node.y+ cable['Info']['T_head_pos'][1]
     sheath_wire.start_node.z = sheath_wire.start_node.z+ cable['Info']['T_head_pos'][2]
@@ -454,7 +453,7 @@ def initialize_cable(cable, max_length):
 
 
     for core in wire['TubeWire']['core']:
-        core_wire = initialize_wire(core, nodes)
+        core_wire = initialize_wire(core, nodes,VF)
         core_wire.start_node.x = core_wire.start_node.x +cable['Info']['T_head_pos'][0]
         core_wire.start_node.y = core_wire.start_node.x + cable['Info']['T_head_pos'][1]
         core_wire.start_node.z = core_wire.start_node.x + cable['Info']['T_head_pos'][2]
