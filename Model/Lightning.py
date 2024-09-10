@@ -14,7 +14,7 @@ class StrokeParameters:
     HEIDLER_PARAMETERS = {
         '0.25/100us': [0.9, 0.25, 100, 2],
         '8/20us': [30.85, 8, 20, 2.4],
-        '2.6/50us': [100000, 2.6, 50, 2.1],
+        '2.6/50us': [10e4, 2.6, 50, 2.1],
         '10/350us': [44.43, 10, 350, 2.1]
     }
 
@@ -40,7 +40,7 @@ class Channel:
 
 
 class Stroke:
-    def __init__(self, stroke_type: str, duration: float, is_calculated: bool, parameter_set: str, parameters=None):
+    def __init__(self, stroke_type: str, duration: float, dt: float, is_calculated: bool, parameter_set: str, parameters=None):
         """
         初始化脉冲对象
 
