@@ -22,7 +22,7 @@ class Network:
         self.towers = kwargs.get('towers', [])
         self.cables = kwargs.get('cables', [])
         self.OHLs = kwargs.get('OHLs', [])
-        self.sources = kwargs.get('sources', [])
+        self.sources = pd.DataFrame()
         self.branches = {}
         self.starts = []
         self.ends = []
@@ -67,32 +67,32 @@ class Network:
         for obj in self.OHLs + self.cables:
             wires = list(obj.wires.get_all_wires().values())
             for wire in wires:
-                position_obj_start = {wire.start_node.name: [wire.start_node.x + obj.info.HeadTower_pos[0],
-                                                             wire.start_node.y + obj.info.HeadTower_pos[1],
-                                                             wire.start_node.z + obj.info.HeadTower_pos[2]]}
+                position_obj_start = {wire.start_node.name: [wire.start_node.x ,
+                                                             wire.start_node.y ,
+                                                             wire.start_node.z]}
                 # position_tower_start = self.towers.get(obj.info.HeadTower).info.position
                 # start_position = [x + y for x, y in zip(position_obj_start, position_tower_start)]
-                position_obj_end = {wire.end_node.name: [wire.end_node.x + obj.info.TailTower_pos[0],
-                                                         wire.end_node.y + obj.info.TailTower_pos[1],
-                                                         wire.end_node.z + obj.info.TailTower_pos[2]]}
+                position_obj_end = {wire.end_node.name: [wire.end_node.x ,
+                                                         wire.end_node.y ,
+                                                         wire.end_node.z ]}
                 # position_tower_end = self.towers.get(obj.info.TailTower).info.position
                 # end_position = [x + y for x, y in zip(position_obj_end, position_tower_end)]
                 Nt = int(np.ceil(distance(obj.info.HeadTower_pos, obj.info.TailTower_pos) / maxlength))
                 self.branches[wire.name] = [position_obj_start, position_obj_end, obj.info.name, Nt]
 
     # initialize internal network elements
-    def initialize_network(self, load_dict, varied_frequency,VF,T_all):
+    def initialize_network(self, load_dict, varied_frequency,VF,dt, T):
         self.varied_frequency = varied_frequency
 
 
         # 1. initialize all elements in the network
         if 'Tower' in load_dict:
-            self.towers = [initialize_tower(tower, max_length=self.max_length,dt=self.dt,T = self.T,VF=VF) for tower in load_dict['Tower']]
+            self.towers = [initialize_tower(tower, max_length=self.max_length,dt=dt,T = T,VF=VF) for tower in load_dict['Tower']]
         #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
         if 'OHL' in load_dict:
             self.OHLs = [initialize_OHL(ohl, max_length=self.max_length) for ohl in load_dict['OHL']]
         if 'Cable' in load_dict:
-            self.cables = [initialize_cable(cable, max_length=self.max_length) for cable in load_dict['Cable']]
+            self.cables = [initialize_cable(cable, max_length=self.max_length,VF=VF) for cable in load_dict['Cable']]
 
         # 2. build dedicated matrix for all elements
         # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
@@ -121,10 +121,9 @@ class Network:
         self.combine_parameter_matrix()
 
     # initialize external element
-    def initialize_source(self, load_dict):
+    def initialize_source(self, load_dict,dt):
         nodes = self.capacitance_matrix.columns.tolist()
-        dt = self.dt
-        self.sources = initial_source(self, nodes, load_dict,duration=1e-3, dt=dt)
+        self.sources = pd.concat([self.sources,initial_source(self, nodes, load_dict,duration=1e-3, dt=dt)], axis=1,ignore_index=True)
 
     def combine_parameter_matrix(self):
         # 按照towers，cables，ohls顺序合并参数矩阵
@@ -155,12 +154,27 @@ class Network:
         self.H["capacitance_matrix"] = self.capacitance_matrix
         self.H["conductance_matrix"] = self.conductance_matrix
 
-    def update_H(self, current_result, time):
+    def concat_lump_source(self):
+
+        lumps = [tower.lump for tower in self.towers]
+        devices = [tower.devices for tower in self.towers]
+        common_time = self.sources.columns
+        if len(self.sources.columns.tolist())>len(lumps[0].voltage_source_matrix.columns.tolist()):
+            common_time = lumps[0].voltage_source_matrix.columns
+        for lump in lumps:
+            lump_solution = pd.concat([lump.voltage_source_matrix, lump.current_source_matrix], axis=0)
+            self.sources = self.sources[common_time].add( lump_solution, fill_value=0).fillna(0)
+        for lumps in list(map(lambda device: device.arrestors + device.insulators + device.transformers, devices)):
+            for lump in lumps:
+                lump_solution = pd.concat([lump.voltage_source_matrix, lump.current_source_matrix], axis=0)
+                self.sources = self.sources[common_time].add(lump_solution, fill_value=0).fillna(0)
+
+    def update_H(self, current_result, time,dt):
         for switch_v_list in [self.switch_disruptive_effect_models, self.voltage_controled_switchs]:
             for switch_v in switch_v_list:
                 v1 = current_result.loc[switch_v.node1[0], 0] if switch_v.node1[0] != 'ref' else 0
                 v2 = current_result.loc[switch_v.node2[0], 0] if switch_v.node2[0] != 'ref' else 0
-                resistance = switch_v.update_parameter(abs(v1-v2), self.dt)
+                resistance = switch_v.update_parameter(abs(v1-v2), dt)
                 self.resistance_matrix.loc[switch_v.bran[0], switch_v.bran[0]] = resistance
 
         for switch_t in self.time_controled_switchs:
@@ -172,8 +186,8 @@ class Network:
             resistance = nolinear_resistor.update_parameter(component_current)
             self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
-    def calculate(self,strategy):
-        strategy.apply(self)
+    def calculate(self,strategy,dt):
+        strategy.apply(self,dt)
 
     def run(self,file_name,basestrategy):
 
@@ -193,8 +207,8 @@ class Network:
         VF = {'odc': 10,
               'frq': frq}
         stroke_num = len(load_dict["Source"])
-        dt = 1e-6
-        T = 0.001
+        dt = 2e-6
+        T = 0.003
         # 是否有定义
         if 'Global' in load_dict:
             dt = load_dict['Global']['delta_time']
@@ -203,17 +217,15 @@ class Network:
             max_length = load_dict['Global']['max_length']
             global_ground = load_dict['Global']['ground']['glb']
             ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
-        T_all = T * stroke_num
-        Nt = int(np.ceil(T/dt))
-
         # 2. 初始化电网，根据电网信息计算源
-        self.initialize_network(load_dict, frq,VF,T_all)
+        self.initialize_network(load_dict, frq,VF,dt,T)
 
         # 2. 保存支路节点信息
         self.calculate_branches(self.max_length)
 
         # 3. 初始化源，计算结果
         for i in range(len(load_dict["Source"])):
-            self.initialize_source(load_dict["Source"][i])
-            self.calculate(basestrategy,dt,Nt)
+            self.initialize_source(load_dict["Source"][i],dt)
+        self.concat_lump_source()
+        self.calculate(basestrategy,dt)
 
