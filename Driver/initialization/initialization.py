@@ -416,19 +416,11 @@ def initial_source(network, nodes, load_dict,duration,dt):
     U_out = InducedVoltage_calculate(pt_start, pt_end, branches, lightning, stroke_sequence=0, constants=constants)
     I_out = LightningCurrrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"], network, nodes, lightning, stroke_sequence=0)
    # Source_Matrix = pd.concat([I_out, U_out], axis=0)
-    lumps = [tower.lump for tower in network.towers]
-    devices = [tower.devices for tower in network.towers]
-    for lump in lumps:
-        U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
-        I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
-    for lumps in list(map(lambda device:device.arrestors+device.insulators+device.transformers , devices)):
-        for lump in lumps:
-            U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
-            I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
+
     Source_Matrix = pd.concat([ U_out,I_out], axis=0)
     return Source_Matrix
 
-def initialize_cable(cable, max_length):
+def initialize_cable(cable, max_length,VF):
 
     # 0. initialize info
     cable_info = cable['Info']

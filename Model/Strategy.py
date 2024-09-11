@@ -7,7 +7,7 @@ class Strategy(ABC):
         self.capacitance_matrix = None
 
     @abstractmethod
-    def apply(netwotk):
+    def apply(netwotk,dt,Nt):
         C = np.array(netwotk.capacitance_matrix)  # 点点
         G = np.array(netwotk.conductance_matrix)
         L = np.array(netwotk.inductance_matrix)  # 线线
@@ -16,20 +16,20 @@ class Strategy(ABC):
         imb = np.array(netwotk.incidence_matrix_B.T)  # 点线
 
 class LinearStrategy(Strategy):
-    def apply(network):
+    def apply(network,dt):
         C = np.array(network.capacitance_matrix)  # 点点
         G = np.array(network.conductance_matrix)
         L = np.array(network.inductance_matrix)  # 线线
         R = np.array(network.resistance_matrix)
         ima = np.array(network.incidence_matrix_A)  # 线点
         imb = np.array(network.incidence_matrix_B.T)  # 点线
-        LEFT = np.block([[-ima, -R - L / network.dt], [G + C / network.dt, -imb]])
+        LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
 
         print("solution for linear component")
         return LEFT
 
 class baseStrategy(Strategy):
-    def apply(self,network,dt,Nt):
+    def apply(self,network,dt):
 
         C = np.array(network.capacitance_matrix)#点点
         G = np.array(network.conductance_matrix)
@@ -40,27 +40,28 @@ class baseStrategy(Strategy):
         source = np.array(network.sources)
         nodes = len(network.capacitance_matrix.columns.tolist())
         branches = len(network.inductance_matrix.columns.tolist())
+        time_length = len(network.sources.columns.tolist())
 
-        out = np.zeros((branches + nodes, network.Nt))
+        out = np.zeros((branches + nodes, time_length))
         branches, nodes = ima.shape
-        for i in range(network.Nt - 1):
+        for i in range(time_length - 1):
             Vnode = out[:nodes, i].reshape((-1,1))
             Ibran = out[nodes:, i].reshape((-1,1))
             Isource = source[:,i].reshape((-1,1))
-            LEFT = np.block([[-ima, -R - L / network.dt], [G + C / network.dt, -imb]])
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
             inv_LEFT = np.linalg.inv(LEFT)
-            RIGHT = np.block([[(-L / network.dt).dot(Ibran)], [(C / network.dt).dot(Vnode)]])
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
             #temp_result = inv_LEFT.dot(RIGHT)
             temp_result = inv_LEFT.dot(Isource + RIGHT)
             out[:, i + 1] = np.copy(temp_result)[:,0]
         network.solution = pd.DataFrame(out, index=network.capacitance_matrix.columns.tolist()+network.inductance_matrix.columns.tolist())
 
 class flash_Insulator(Strategy):
-    def apply(self,network):
+    def apply(self,network,dt):
         network.towers[0].lump
 
 class NonLiear(Strategy):
-    def apply(self, network):
+    def apply(self, network,dt):
         """
         【函数功能】非线性电路求解
         【入参】
@@ -79,11 +80,11 @@ class NonLiear(Strategy):
         """
 
         branches, nodes = network.incidence_matrix_A.shape
-        out = np.zeros((branches + nodes, network.Nt))
         source = np.array(network.sources)
-
+        time_length = len(network.sources.columns.tolist())
+        out = np.zeros((branches + nodes, time_length))
         # source = np.array(sources)
-        for i in range(network.Nt - 1):
+        for i in range(time_length - 1):
             C = network.capacitance_matrix.to_numpy()  # 点点
             G = network.conductance_matrix.to_numpy()
             L = network.inductance_matrix.to_numpy()  # 线线
@@ -93,9 +94,9 @@ class NonLiear(Strategy):
             Vnode = out[:nodes, i].reshape((-1, 1))
             Ibran = out[nodes:, i].reshape((-1, 1))
             Isource = source[:,i].reshape((-1,1))
-            LEFT = np.block([[-ima, -R - L / network.dt], [G + C / network.dt, -imb]])
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
             inv_LEFT = np.linalg.inv(LEFT)
-            RIGHT = np.block([[(-L / network.dt).dot(Ibran)], [(C / network.dt).dot(Vnode)]])
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
 
             temp_result = inv_LEFT.dot(Isource + RIGHT)
             #temp_result = inv_LEFT.dot(RIGHT)
@@ -103,8 +104,8 @@ class NonLiear(Strategy):
             temp_result = pd.DataFrame(temp_result,
                                        index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
-            t = network.dt * (i + 1)
-            network.update_H(temp_result, t)
+            t = dt * (i + 1)
+            network.update_H(temp_result, t, dt)
 
         network.solution = pd.DataFrame(out,
                                      index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())

@@ -537,6 +537,7 @@
         {
           "type": "air",
           "bran": "Y01_Tower_2",
+          "probe": null,
           "node1": "X17",
           "node2": "X25",
           "pos_1": [
@@ -573,6 +574,7 @@
         {
           "type": "air",
           "bran": "Y02_Tower_2",
+          "probe": null,
           "node1": "X18",
           "node2": "X21",
           "pos_1": [
@@ -609,6 +611,7 @@
         {
           "type": "air",
           "bran": "Y03_Tower_2",
+          "probe": null,
           "node1": "X19",
           "node2": "X22",
           "pos_1": [
@@ -645,6 +648,7 @@
         {
           "type": "air",
           "bran": "Y04_Tower_2",
+          "probe": null,
           "node1": "X20",
           "node2": "X23",
           "pos_1": [
@@ -681,6 +685,7 @@
         {
           "type": "air",
           "bran": "Y05_Tower_2",
+          "probe": null,
           "node1": "X24",
           "node2": "X25",
           "pos_1": [
@@ -717,6 +722,7 @@
         {
           "type": "air",
           "bran": "Y06_Tower_2",
+          "probe": null,
           "node1": "X25",
           "node2": "X26",
           "pos_1": [
@@ -753,6 +759,7 @@
         {
           "type": "air",
           "bran": "Y07_Tower_2",
+          "probe": null,
           "node1": "X27",
           "node2": "X26",
           "pos_1": [
@@ -789,6 +796,7 @@
         {
           "type": "air",
           "bran": "Y08_Tower_2",
+          "probe": null,
           "node1": "X25",
           "node2": "X28",
           "pos_1": [
@@ -1186,15 +1194,6 @@
     }
   ],
   "Source": [
-    {
-    "area": "tower_1",
-    "wire": "Y02",
-    "position": [
-      0,
-      -0.4,
-      9.8
-     ]
-    },
     {
     "area": "tower_1",
     "wire": "Y02",
