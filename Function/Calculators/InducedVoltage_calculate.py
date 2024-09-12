@@ -28,40 +28,44 @@ def LightningCurrent_calculate(p1, p2, position, network, node_index, lightning,
     :param stroke_sequence:
     :return:
     """
-    area = p1.split("_")[0]
-    # 1. find the wire that is hit
-    selected_wire = None
-    if area == "tower":
-
-        selected_tower = [tower for tower in network.towers if tower.info.name == p1]
-        selected_wire = [wire for wire in list(selected_tower[0].wires.get_all_wires().values()) if wire.name.split("_")[0] == p2]
-    elif area == "OHL":
-        selected_ohl = [ohl for ohl in network.ohls if ohl.name == p1]
-        selected_wire = [wire for wire in list(selected_ohl[0].wires.get_all_wires().values()) if wire.name.split("_")[0] == p2]
-    elif area == "cable":
-        selected_cable = [cable for cable in network.cables if cable.name == p1]
-        selected_wire = [wire for wire in list(selected_cable[0].wires.get_all_wires().values()) if wire.name.split("_")[0] == p2]
-    # 2. find the closest node among nodes in the hit wire.
-    nodes = set()
-    for wire in selected_wire:
-        nodes.add(wire.start_node)
-        nodes.add(wire.end_node)
-
-    closest_point = None
-    min_distance = float('inf')
-
-    for node in nodes:
-        dist = distance(node, position)
-        if dist < min_distance:
-            min_distance = dist
-            closest_point = node
 
     if lightning.type == 'Direct':
-        # 初始化一个 DataFrame，行索引为 Nodes，列数为 Nt
+        area = p1.split("_")[0]
+        # 1. 找到用户指定点所在的wire
+        selected_wire = None
+        if area == "tower":
+            selected_tower = [tower for tower in network.towers if tower.info.name == p1]
+            selected_wire = [wire for wire in list(selected_tower[0].wires.get_all_wires().values()) if
+                             wire.name.split("_")[0] == p2]
+        elif area == "OHL":
+            selected_ohl = [ohl for ohl in network.ohls if ohl.name == p1]
+            selected_wire = [wire for wire in list(selected_ohl[0].wires.get_all_wires().values()) if
+                             wire.name.split("_")[0] == p2]
+        elif area == "cable":
+            selected_cable = [cable for cable in network.cables if cable.name == p1]
+            selected_wire = [wire for wire in list(selected_cable[0].wires.get_all_wires().values()) if
+                             wire.name.split("_")[0] == p2]
+        # 2. 找到用户指定点距离该wire上最近的node
+        nodes = set()
+        for wire in selected_wire:
+            nodes.add(wire.start_node)
+            nodes.add(wire.end_node)
+
+        closest_point = None
+        min_distance = float('inf')
+
+        for node in nodes:
+            dist = distance(node, position)
+            if dist < min_distance:
+                min_distance = dist
+                closest_point = node
+
+        # 3. 初始化一个 DataFrame，行索引为 Nodes，列数为 Nt
         I_out = pd.DataFrame(0, index=node_index, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
         I_out.loc[closest_point.name] = lightning.strokes[stroke_sequence].current_waveform
         return I_out
     elif lightning.type == 'Indirect':
+        # 间接雷，电流源为0
         I_out = pd.DataFrame(0, index=node_index, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
         return I_out
 
