@@ -53,8 +53,6 @@ class Stroke:
         dt (float): 仿真步长，单位s
         is_calculated (bool): 脉冲是否要被计算
         parameter_set (str): 脉冲参数集, 目前只支持 '0.25/100us', '8/20us', '2.6/50us', '10/350us'
-        hit_pos (list): 雷击点坐标(x, y, 0)
-        model (str): 模型选择
         parameters (list, optional): 脉冲参数, 仅在 'CIGRE' 和 'Heidler' 类型时使用, parameter_set被指定时, 请勿初始化该参数, 如想测试parameter_set之外的参数集, 请在此处初始化参数列表
         """
         self.stroke_type = stroke_type
@@ -103,7 +101,8 @@ class Stroke:
         Ip, tau1, tau2, n = self.parameters
         tau1 = tau1 * 1.0e-06
         tau2 = tau2 * 1.0e-06
-        eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
+        # eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
+        eta = 1
         Iout = ((Ip / eta) * ((t / tau1) ** n) / (1 + (t / tau1) ** n)) * np.exp(-t / tau2)
 
         return Iout
