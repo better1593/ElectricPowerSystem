@@ -12,7 +12,7 @@ if __name__ == '__main__':
     strategy = Strategy.baseStrategy()
     network = Network()
     network.run(file_name, strategy)
-    measure_result = network.run_measurement()
+   # measure_result = network.run_measurement()
     print(network.solution)
 
 

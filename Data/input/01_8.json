@@ -1225,8 +1225,8 @@
   }
 ,
   "Global": {
-    "delta_time": 1e-6,
-    "time": 0.001,
+    "delta_time": 1e-8,
+    "time": 2e-5,
     "constant_frequency": 2e4,
     "max_length": 20,
     "ground": {

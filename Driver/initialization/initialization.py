@@ -428,8 +428,16 @@ def initial_source(network, nodes, load_dict,dt):
         I_out = pd.concat([I_out, LightningCurrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"],
                             network, nodes, lightning, stroke_sequence=i)],axis=1,ignore_index=True)
    # Source_Matrix = pd.concat([I_out, U_out], axis=0)
-
-    Source_Matrix = pd.concat([ U_out,I_out], axis=0)
+    lumps = [tower.lump for tower in network.towers]
+    devices = [tower.devices for tower in network.towers]
+    for lump in lumps:
+        U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
+        I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
+    for lumps in list(map(lambda device:device.arrestors+device.insulators+device.transformers , devices)):
+        for lump in lumps:
+            U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
+            I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
+    Source_Matrix = pd.concat([U_out, I_out], axis=0)
     return Source_Matrix
 
 def initialize_cable(cable, max_length,VF):
