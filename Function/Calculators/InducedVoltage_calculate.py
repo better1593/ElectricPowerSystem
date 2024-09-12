@@ -14,7 +14,7 @@ def distance(node1, node2):
                      (node1.y - node2[1]) ** 2 +
                      (node1.z - node2[2]) ** 2)
 
-def LightningCurrrent_calculate(p1, p2, position, network, node_index, lightning, stroke_sequence):
+def LightningCurrent_calculate(p1, p2, position, network, node_index, lightning, stroke_sequence):
     """
     【功能】
     计算直击雷的电流源矩阵
@@ -71,6 +71,7 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
     【功能】：
     计算每个导体段，在每个时刻的感应电动势
     【输入】
+    pt_start (n * 3, np.array):  起点坐标
     conduct_object:  Tower, OHL or Cable对象
     stroke: 雷电对象
     constants: 常数对象
@@ -135,7 +136,7 @@ def ElectricField_calculate(pt_start, pt_end, stroke: Stroke, channel, ep0, vc):
 
     # 时刻的序列
     # t_sr = np.arange(1, stroke.Nt + 1) * stroke.dt * 1e6
-    t_sr = stroke.t_us
+    t_sr = stroke.t_us * 1.0e6  # 避免太多小数
     t_sr = t_sr.reshape(1, -1)
 
     # 雷电通道每段的中点z坐标和镜像通道的z坐标
