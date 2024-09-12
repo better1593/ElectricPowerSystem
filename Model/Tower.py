@@ -9,7 +9,6 @@ from Info import Info
 from Wires import Wires, TubeWire
 from Ground import Ground
 from Device import Devices
-from Node import MeasurementNode
 import numpy as np
 from scipy.linalg import block_diag
 from Utils.Matrix import expand_matrix, copy_and_expand_matrix, update_matrix, update_and_sum_matrix
@@ -17,7 +16,7 @@ from Utils.Matrix import expand_matrix, copy_and_expand_matrix, update_matrix, u
 
 class Tower:
     def __init__(self, name, Info, Wires: Wires, tubeWire: TubeWire, Lump, Ground: Ground, Devices: Devices,
-                 MeasurementNode: MeasurementNode):
+                 Measurement):
         """
         初始化杆塔对象
 
@@ -46,7 +45,7 @@ class Tower:
         self.lump = Lump
         self.ground = Ground
         self.devices = Devices
-        self.measurementNode = MeasurementNode
+        self.Measurement = Measurement
         self.nodesList = Wires.get_node_names()
         self.nodesPositions = Wires.get_node_coordinates()
         self.bransList = Wires.get_bran_coordinates()

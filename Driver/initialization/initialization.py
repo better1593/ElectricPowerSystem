@@ -1,6 +1,9 @@
 import json
 import numpy as np
 import copy
+
+from pandas.core.interchange.dataframe_protocol import DataFrame
+
 from Model.Lump import Lumps, Resistor_Inductor, Conductor_Capacitor, \
     Voltage_Source_Cosine, Voltage_Source_Empirical, Current_Source_Cosine, Current_Source_Empirical, \
     Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
@@ -14,12 +17,12 @@ from Model.Tower import Tower
 from Model.OHL import OHL
 from Model.Lightning import Stroke, Lightning, Channel
 from Model.Contant import Constant
-from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrrent_calculate
+from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrent_calculate
 import pandas as pd
 from Model.Cable import Cable
 from Model.Info import TowerInfo,OHLInfo, CableInfo
 from Model.Device import Devices
-
+from Utils.Math import segment_branch
 
 # initialize wire in tower
 def initialize_wire(wire, nodes,VF):
@@ -95,6 +98,12 @@ def initialize_ground(ground_dic):
 
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
+def initalize_wire_measurement(wire,measurement,tower_name):
+    if wire['probe']:
+        measurement[wire['bran']] = [0,wire[ 'probe'],wire['bran'],wire['node1'],wire['node2'],tower_name]
+
+
+
 
 def initialize_tower(tower_dict, max_length, dt, T,VF):
 
@@ -104,8 +113,10 @@ def initialize_tower(tower_dict, max_length, dt, T,VF):
     wires = Wires()
     tube_wire = None
     nodes = []
+    measurement = {}
     for wire in tower_dict['Wire']:
 
+        initalize_wire_measurement(wire,measurement,tower_dict['Info']['name'])
         # 1.1 initialize air wire
         if wire['type'] == 'air':
             wire_air = initialize_wire(wire, nodes,VF)
@@ -140,10 +151,10 @@ def initialize_tower(tower_dict, max_length, dt, T,VF):
     ground = initialize_ground(ground_dic)
 
     # 3. initialize lumps
-    lumps = initial_lump(tower_dict['Lump'], dt, T)
+    lumps,measurement = initial_lump(tower_dict['Lump'], dt, T,measurement)
 
     # 4. initialize devices
-    devices = initial_device(tower_dict['Device'], dt, T)
+    devices,measurement = initial_device(tower_dict['Device'], dt, T,measurement)
 
     # 5. information of tower
     tower_info = tower_dict['Info']
@@ -151,7 +162,7 @@ def initialize_tower(tower_dict, max_length, dt, T,VF):
          tower_info['Theta'],tower_info['mode_con'],tower_info['mode_gnd'], tower_info['pole_height'], tower_info['pole_head'])
 
     # 6. initalize tower
-    tower = Tower(tower_dict['name'], info, wires, tube_wire, lumps, ground, devices, None)
+    tower = Tower(tower_dict['name'], info, wires, tube_wire, lumps, ground, devices, measurement)
     print(f"Tower:{tower.name} loaded.")
     return tower
 
@@ -197,20 +208,22 @@ def initialize_measurement(file_name):
     with open(json_file_path, 'r') as j:
         load_dict = json.load(j)
 
-def initial_lump(lump_data, dt, T):
+def initial_lump(lump_data, dt, T,measurement):
     Nt = int(np.ceil(T / dt))
 
     lumps = Lumps()
 
     nolinear_element_parameters = Nolinear_Element_Parameters()
     switch_parameters = Switch_Parameters()
-
     for lump in lump_data:
         lump_type = lump['Type']
         name = lump['name']
         bran_name = np.array([lump['bran_name']]).reshape(-1)
         node1 = np.array([lump['node1']]).reshape(-1)
         node2 = np.array([lump['node2']]).reshape(-1)
+        label = 1
+        if lump['probe']:
+            measurement[lump['name']]= [label,lump['probe'],bran_name,node1,node2]
         # 判断器件类型
         match lump_type:
             case 'RL':
@@ -250,23 +263,35 @@ def initial_lump(lump_data, dt, T):
                     lumps.add_current_source_empirical(
                         Current_Source_Empirical(name, bran_name, node1, node2, currents))
             case 'VCVS':
+                #---mei zhilu，node1, node2电压-》支路电压
                 resistance = lump['value1'][0]
                 gain = lump['value1'][1]
                 lumps.add_voltage_control_voltage_source(
                     Voltage_Control_Voltage_Source(name, bran_name, node1, node2, resistance, gain))
+                if lump['probe']:
+                    measurement[lump['name']] = [2, lump['probe'], bran_name, node1, node2,resistance,gain]
             case 'ICVS':
+                # mei dian
                 resistance = lump['value1'][0]
                 r = lump['value1'][1]
                 lumps.add_current_control_voltage_source(
                     Current_Control_Voltage_Source(name, bran_name, node1, node2, resistance, r))
+                if lump['probe']:
+                    measurement[lump['name']] = [3, lump['probe'], bran_name, node1, node2, resistance, r]
             case 'VCIS':
+                # node1,2 电压——》电流，g
                 g = lump['value1'][1]
                 lumps.add_voltage_control_current_source(
                     Voltage_Control_Current_Source(name, bran_name, node1, node2, g))
+                if lump['probe']:
+                    measurement[lump['name']] = [4, lump['probe'], bran_name, node1, node2, g]
             case 'ICIS':
+                # bran_name电流--》node电流，直接取节点电压
                 gain = lump['value1'][1]
                 lumps.add_current_control_current_source(
                     Current_Control_Current_Source(name, bran_name, node1, node2, gain))
+                if lump['probe']:
+                    measurement[lump['name']] = [5, lump['probe'], bran_name, node1, node2, gain]
             case 'TX2':
                 vpri = lump['value1'][0]
                 vsec = lump['value2'][0]
@@ -361,13 +386,13 @@ def initial_lump(lump_data, dt, T):
     lumps.lump_voltage_source_matrix_initial(T, dt)
     # 初始化Lumps电流矩阵
     lumps.lump_current_source_matrix_initial(T, dt)
-    return lumps
+    return lumps,measurement
 
-def initial_device(device_data, dt, T):
+def initial_device(device_data, dt, T,measurement):
     devices = Devices()
 
     for device in device_data:
-        lumps = initial_lump(device['Lump'], dt, T)
+        lumps,measurement = initial_lump(device['Lump'], dt, T,measurement)
         if device['type'] == 'insulator':
             devices.add_insolator(lumps)
         elif device['type'] == 'arrestor':
@@ -376,45 +401,32 @@ def initial_device(device_data, dt, T):
             devices.add_transformer(lumps)
     # d = data.shape[0]
 
-    return devices
+    return devices,measurement
 
-def initial_source(network, nodes, load_dict,duration,dt):
+def initial_source(network, nodes, load_dict,dt):
     # 0. read json file
-
-    stroke = Stroke('Heidler', duration=duration, dt=dt, is_calculated=True, parameter_set='2.6/50us', parameters=None)
-
-    stroke.calculate()
-    channel = Channel(hit_pos=[500, 50, 0])
-    lightning =Lightning(id=1, type='Indirect', strokes=[stroke], channel=channel)
-    branches = network.branches.copy()  # branches的副本，用于新增或删减支路
-    for key, value in network.branches.items():
-        keys_tobe_delete = []
-        if 'OHL' in value[2]:
-            start_node_coord = list(value[0].values())[0]
-            end_node_coord = list(value[1].values())[0]
-            # 生成新节点
-            x = np.linspace(start_node_coord[0], end_node_coord[0], value[3] + 1, dtype=float)
-            y = np.linspace(start_node_coord[1], end_node_coord[1], value[3] + 1, dtype=float)
-            z = np.linspace(start_node_coord[2], end_node_coord[2], value[3] + 1, dtype=float)
-            new_nodes_name = [key + '_MiddleNode_{:02d}'.format(i) for i in range(1, value[3])]
-            new_nodes_name.insert(0, list(value[0].keys())[0])
-            new_nodes_name.append(list(value[1].keys())[0])
-            for i in range(len(new_nodes_name) - 1):
-                start_node_after_seg_dict = {new_nodes_name[i]: [x[i], y[i], z[i]]}
-                end_node_after_seg_dict = {new_nodes_name[i+1]: [x[i+1], y[i+1], z[i+1]]}
-                branches[f"{key}_splited_{i+1}"] = [start_node_after_seg_dict, end_node_after_seg_dict, value[2], value[3]]
-            del branches[key]
-
+    stroke_list = []
+    for stroke_dict in load_dict['Stroke']:
+        duration,stroke_type,parameters,parameter_set= stroke_dict['duration'],stroke_dict['type'],stroke_dict['parameters'],stroke_dict['parameter_set']
+        stroke = Stroke(stroke_type, duration=duration, dt=dt, is_calculated=True, parameter_set=parameter_set, parameters=None)
+        stroke.calculate()
+        stroke_list.append(stroke)
+    lightning =Lightning(id=1, type= load_dict['type'], strokes=stroke_list, channel=Channel(load_dict['position']))
+    branches = segment_branch(network.branches)
     start = [list(l[0].values())[0] for l in list(branches.values())]
     end = [list(l[1].values())[0] for l in list(branches.values())]
-    branches = list(branches.keys())
+    branches = list(branches.keys())  # 让branches只存储支路的列表，可节省内存
     pt_start = np.array(start)
     pt_end = np.array(end)
     constants = Constant()
     constants.ep0 = 8.85e-12
-
-    U_out = InducedVoltage_calculate(pt_start, pt_end, branches, lightning, stroke_sequence=0, constants=constants)
-    I_out = LightningCurrrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"], network, nodes, lightning, stroke_sequence=0)
+    U_out = pd.DataFrame()
+    I_out = pd.DataFrame()
+    for i in range(len(stroke_list)):
+        U_out = pd.concat([U_out, InducedVoltage_calculate(pt_start, pt_end, branches, lightning,
+                            stroke_sequence=i, constants=constants)], axis=1,ignore_index=True)
+        I_out = pd.concat([I_out, LightningCurrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"],
+                            network, nodes, lightning, stroke_sequence=i)],axis=1,ignore_index=True)
    # Source_Matrix = pd.concat([I_out, U_out], axis=0)
 
     Source_Matrix = pd.concat([ U_out,I_out], axis=0)

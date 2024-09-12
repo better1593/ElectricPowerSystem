@@ -28,6 +28,7 @@ class Network:
         self.ends = []
         self.H = {}
         self.solution = pd.DataFrame()
+        self.measurement = {}
         self.incidence_matrix_A = pd.DataFrame()
         self.incidence_matrix_B = pd.DataFrame()
         self.resistance_matrix = pd.DataFrame()
@@ -47,12 +48,14 @@ class Network:
         self.varied_frequency = np.arange(0, 37, 9)
         self.global_ground = 0
         self.ground = None
+        self.dt =None
+        self.T = None
 
         self.switch_disruptive_effect_models = []
         self.voltage_controled_switchs = []
         self.time_controled_switchs = []
         self.nolinear_resistors = []
-
+    #记录电网元素之间的关系
     def calculate_branches(self, maxlength):
         tower_branch_node = {}
         tower_nodes = []
@@ -88,6 +91,7 @@ class Network:
         # 1. initialize all elements in the network
         if 'Tower' in load_dict:
             self.towers = [initialize_tower(tower, max_length=self.max_length,dt=dt,T = T,VF=VF) for tower in load_dict['Tower']]
+            self.measurement = reduce(lambda acc,tower:{**acc,**tower.Measurement},self.towers,{})
         #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
         if 'OHL' in load_dict:
             self.OHLs = [initialize_OHL(ohl, max_length=self.max_length) for ohl in load_dict['OHL']]
@@ -120,12 +124,50 @@ class Network:
         # 3. combine matrix
         self.combine_parameter_matrix()
 
-    # initialize external element
+    # initialize external source
     def initialize_source(self, load_dict,dt):
         nodes = self.capacitance_matrix.columns.tolist()
-        self.sources = pd.concat([self.sources,initial_source(self, nodes, load_dict,duration=1e-3, dt=dt)], axis=1,ignore_index=True)
+        self.sources =initial_source(self, nodes, load_dict, dt=dt)
 
+    def run_measurement(self):
+        #lumpname/branname: label,probe,branname,n1,n2,(towername)
+        measure_result = {}
+        for k,v in self.measurement.items():
+            print("ddd")
+            # if v[0] == 0 or v[0]==1:
+            #     if len(v[2]) ==1:
+            #         voltage = self.solution.loc[v[2]].tolist()
+            #     else:
+            #
+            #     node1 = self.solution.loc[v[3]].tolist()
+            #     node2 = self.solution.loc[v[4]].tolist()
+            #     current = [abs(a-b) for a,b in zip(node1,node2)]
+            #     if v[1] == 1:
+            #         measure_result[k] = current
+            #     elif v[1] == 2:
+            #         measure_result[k] = voltage
+            #     elif v[1] == 3:
+            #         measure_result[k] = [a*b for a,b in zip(current,voltage)]
+            #     elif v[1] == 4:
+            #         measure_result[k] = [current,voltage]
+            #     elif v[1] == 11:
+            #         p = [a*b for a,b in zip(current,voltage)]
+            #         measure_result[k] = sum([i*self.dt for i in p])
+
+                #
+                #
+                # print('Current of ' +k+' is:')
+                # print(current)
+                # print('Voltage of ' +k+' is:')
+                # print(voltage)
+
+
+
+
+
+    #R,L,G,C矩阵合并
     def combine_parameter_matrix(self):
+
         # 按照towers，cables，ohls顺序合并参数矩阵
         for tower in self.towers:
             self.incidence_matrix_A = self.incidence_matrix_A.add(tower.incidence_matrix_A, fill_value=0).fillna(0)
@@ -154,6 +196,7 @@ class Network:
         self.H["capacitance_matrix"] = self.capacitance_matrix
         self.H["conductance_matrix"] = self.conductance_matrix
 
+    #所有雷击和lump的I，V合并
     def concat_lump_source(self):
 
         lumps = [tower.lump for tower in self.towers]
@@ -169,6 +212,7 @@ class Network:
                 lump_solution = pd.concat([lump.voltage_source_matrix, lump.current_source_matrix], axis=0)
                 self.sources = self.sources[common_time].add(lump_solution, fill_value=0).fillna(0)
 
+    #更新H矩阵和判断绝缘子是否闪络
     def update_H(self, current_result, time,dt):
         for switch_v_list in [self.switch_disruptive_effect_models, self.voltage_controled_switchs]:
             for switch_v in switch_v_list:
@@ -186,10 +230,11 @@ class Network:
             resistance = nolinear_resistor.update_parameter(component_current)
             self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
+    #执行不同的算法
     def calculate(self,strategy,dt):
         strategy.apply(self,dt)
 
-    def run(self,file_name,basestrategy):
+    def run(self,file_name,*basestrategy):
 
         json_file_path = "Data/input/" + file_name + ".json"
         # 0. read json file
@@ -206,26 +251,29 @@ class Network:
         ])
         VF = {'odc': 10,
               'frq': frq}
-        stroke_num = len(load_dict["Source"])
-        dt = 2e-6
-        T = 0.003
+        self.dt = 1e-8
+        self.T = 0.003
         # 是否有定义
         if 'Global' in load_dict:
-            dt = load_dict['Global']['delta_time']
-            T = load_dict['Global']['time']
+            self.dt = load_dict['Global']['delta_time']
+            self.T = load_dict['Global']['time']
             f0 = load_dict['Global']['constant_frequency']
             max_length = load_dict['Global']['max_length']
             global_ground = load_dict['Global']['ground']['glb']
             ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
         # 2. 初始化电网，根据电网信息计算源
-        self.initialize_network(load_dict, frq,VF,dt,T)
+        self.initialize_network(load_dict, frq,VF,self.dt,self.T)
 
         # 2. 保存支路节点信息
         self.calculate_branches(self.max_length)
 
         # 3. 初始化源，计算结果
-        for i in range(len(load_dict["Source"])):
-            self.initialize_source(load_dict["Source"][i],dt)
-        self.concat_lump_source()
-        self.calculate(basestrategy,dt)
+        if load_dict["Source"]["Lightning"]:
+            light = load_dict["Source"]["Lightning"]
+            self.initialize_source(light,self.dt)
+        self.concat_lump_source() # 合并source和lump的源
+        self.calculate(basestrategy[0],self.dt)
+
+        print("you are measuring")
+
 
