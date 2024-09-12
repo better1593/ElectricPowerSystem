@@ -135,9 +135,8 @@ class Network:
         for k,v in self.measurement.items():
             print("ddd")
             # if v[0] == 0 or v[0]==1:
-            #     if len(v[2]) ==1:
-            #         voltage = self.solution.loc[v[2]].tolist()
-            #     else:
+            #     for bran in v[2]:
+            #         voltage = {bran:self.solution.loc[bran].tolist()}
             #
             #     node1 = self.solution.loc[v[3]].tolist()
             #     node2 = self.solution.loc[v[4]].tolist()
@@ -153,13 +152,13 @@ class Network:
             #     elif v[1] == 11:
             #         p = [a*b for a,b in zip(current,voltage)]
             #         measure_result[k] = sum([i*self.dt for i in p])
-
-                #
-                #
-                # print('Current of ' +k+' is:')
-                # print(current)
-                # print('Voltage of ' +k+' is:')
-                # print(voltage)
+            #
+            #
+            #
+            #     print('Current of ' +k+' is:')
+            #     print(current)
+            #     print('Voltage of ' +k+' is:')
+            #     print(voltage)
 
 
 
@@ -196,21 +195,7 @@ class Network:
         self.H["capacitance_matrix"] = self.capacitance_matrix
         self.H["conductance_matrix"] = self.conductance_matrix
 
-    #所有雷击和lump的I，V合并
-    def concat_lump_source(self):
 
-        lumps = [tower.lump for tower in self.towers]
-        devices = [tower.devices for tower in self.towers]
-        common_time = self.sources.columns
-        if len(self.sources.columns.tolist())>len(lumps[0].voltage_source_matrix.columns.tolist()):
-            common_time = lumps[0].voltage_source_matrix.columns
-        for lump in lumps:
-            lump_solution = pd.concat([lump.voltage_source_matrix, lump.current_source_matrix], axis=0)
-            self.sources = self.sources[common_time].add( lump_solution, fill_value=0).fillna(0)
-        for lumps in list(map(lambda device: device.arrestors + device.insulators + device.transformers, devices)):
-            for lump in lumps:
-                lump_solution = pd.concat([lump.voltage_source_matrix, lump.current_source_matrix], axis=0)
-                self.sources = self.sources[common_time].add(lump_solution, fill_value=0).fillna(0)
 
     #更新H矩阵和判断绝缘子是否闪络
     def update_H(self, current_result, time,dt):
@@ -251,8 +236,8 @@ class Network:
         ])
         VF = {'odc': 10,
               'frq': frq}
-        self.dt = 1e-8
-        self.T = 0.003
+        #self.dt = 1e-8
+        #self.T = 0.003
         # 是否有定义
         if 'Global' in load_dict:
             self.dt = load_dict['Global']['delta_time']
@@ -271,7 +256,7 @@ class Network:
         if load_dict["Source"]["Lightning"]:
             light = load_dict["Source"]["Lightning"]
             self.initialize_source(light,self.dt)
-        self.concat_lump_source() # 合并source和lump的源
+
         self.calculate(basestrategy[0],self.dt)
 
         print("you are measuring")

@@ -103,7 +103,8 @@ class Stroke:
         Ip, tau1, tau2, n = self.parameters
         tau1 = tau1 * 1.0e-06
         tau2 = tau2 * 1.0e-06
-        eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
+        #eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
+        eta = 1
         Iout = ((Ip / eta) * ((t / tau1) ** n) / (1 + (t / tau1) ** n)) * np.exp(-t / tau2)
 
         return Iout
