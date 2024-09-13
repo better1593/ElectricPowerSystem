@@ -129,43 +129,9 @@ class Network:
         nodes = self.capacitance_matrix.columns.tolist()
         self.sources =initial_source(self, nodes, load_dict, dt=dt)
 
-    def run_measurement(self):
+    def run_measurement(self,strategy):
         #lumpname/branname: label,probe,branname,n1,n2,(towername)
-        results = {}
-
-        for key, value in self.measurement.items():
-            data_type = value[0]  # 0:'branch',1: 'normal lump'
-            measurement_type = value[1]  # 1:'current',2:'voltage'
-
-            # 处理支路名或节点名
-            if data_type == 0:
-                branch_name = key
-                if measurement_type == 1:
-                    results[key] = self.solution.loc[branch_name].tolist()
-                elif measurement_type == 2:
-                    node1 = self.solution.get(value[3], None)
-                    node2 = self.solution.get(value[4], None)
-                    min = [abs(a - b) for a, b in zip(node1, node2)]
-                    results[key] = min
-            elif data_type == 1:
-                lump_name = key
-                # 处理支路名可能是列表的情况
-                branches = value[2] if isinstance(value[3], list) else [value[3]]
-                if measurement_type == 1:
-                    dict_result = {}
-                    for branch in branches:
-                        dict_result[branch] = self.solution.loc[branch].tolist()
-                    results[lump_name] = dict_result
-                elif measurement_type == 2:
-                    dict_result = {}
-                    for bran,n1,n2 in zip(value[2],value[3],value[4]):
-                        node1 = self.solution.loc[n1].tolist()
-                        node2 = self.solution.loc[n2].tolist()
-                        min = [abs(a - b) for a, b in zip(node1, node2)]
-                        dict_result[bran] = min
-                    results[lump_name] = dict_result
-
-        return results
+        return strategy.apply(measurement=self.measurement,solution=self.solution)
 
 
 
@@ -222,14 +188,22 @@ class Network:
             self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
     #执行不同的算法
-    def calculate(self,strategy,dt):
+    def calculate(self,dt):
+        if not self.switch_disruptive_effect_models and not self.voltage_controled_switchs and not self.time_controled_switchs and not self.nolinear_resistors:
+            strategy = Strategy.Linear()
+        else:
+            strategy = Strategy.NonLinear()
         strategy.apply(self,dt)
+
+        if self.measurement:
+            self.measurement = Strategy.Measurement().apply(measurement=self.measurement, solution=self.solution,dt=dt)
+
 
     def run(self,file_name,*basestrategy):
 
         json_file_path = "Data/input/" + file_name + ".json"
         # 0. read json file
-        with open(json_file_path, 'r') as j:
+        with open(json_file_path, 'r',encoding="utf-8") as j:
             load_dict = json.load(j)
 
 
@@ -263,7 +237,9 @@ class Network:
             light = load_dict["Source"]["Lightning"]
             self.initialize_source(light,self.dt)
 
-        self.calculate(basestrategy[0],self.dt)
+
+
+        self.calculate(self.dt)
 
         print("you are measuring")
 
