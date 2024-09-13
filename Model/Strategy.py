@@ -78,6 +78,19 @@ class NonLinear(Strategy):
         network.solution = pd.DataFrame(out,
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
+
+class Change_DE_max(Strategy):
+    def apply(self,network,dt):
+        network.reverse_H()
+        for lump in network.switch_disruptive_effect_models.parameters:
+            lump['DE_max'] = 100
+        network.calculate(dt)
+
+
+class Change_Source(Strategy):
+    def apply(self,network,dt):
+        network.s
+
 class Measurement(Strategy):
     def apply(self,measurement,solution,dt):
         results = {}

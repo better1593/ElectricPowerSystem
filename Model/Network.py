@@ -134,8 +134,6 @@ class Network:
         return strategy.apply(measurement=self.measurement,solution=self.solution)
 
 
-
-
     #R,L,G,C矩阵合并
     def combine_parameter_matrix(self):
 
@@ -167,14 +165,20 @@ class Network:
         self.H["capacitance_matrix"] = self.capacitance_matrix
         self.H["conductance_matrix"] = self.conductance_matrix
 
-
-
+    def reverse_H(self):
+        self.incidence_matrix_A = self.H["incidence_matrix_A"]
+        self.incidence_matrix_B = self.H["incidence_matrix_B"]
+        self.resistance_matrix = self.H["resistance_matrix"]
+        self.inductance_matrix = self.H["inductance_matrix"]
+        self.capacitance_matrix = self.H["capacitance_matrix"]
+        self.conductance_matrix = self.H["conductance_matrix"]
     #更新H矩阵和判断绝缘子是否闪络
     def update_H(self, current_result, time):
         for switch_v_list in [self.switch_disruptive_effect_models, self.voltage_controled_switchs]:
             for switch_v in switch_v_list:
                 v1 = current_result.loc[switch_v.node1[0], 0] if switch_v.node1[0] != 'ref' else 0
                 v2 = current_result.loc[switch_v.node2[0], 0] if switch_v.node2[0] != 'ref' else 0
+
                 resistance = switch_v.update_parameter(abs(v1-v2), self.dt)
                 self.resistance_matrix.loc[switch_v.bran[0], switch_v.bran[0]] = resistance
 
@@ -198,8 +202,10 @@ class Network:
         if self.measurement:
             self.measurement = Strategy.Measurement().apply(measurement=self.measurement, solution=self.solution,dt=dt)
 
+    def change_parameter(self,strategy):
+        strategy.apply(self, self.dt)
 
-    def run(self,file_name,*basestrategy):
+    def run(self,file_name,*change):
 
         json_file_path = "Data/input/" + file_name + ".json"
         # 0. read json file
@@ -240,6 +246,10 @@ class Network:
 
 
         self.calculate(self.dt)
+
+        self.change_parameter(change[0])
+
+        #Strategy.Change_DE_max().apply(self,self.dt)
 
         print("you are measuring")
 
