@@ -103,7 +103,7 @@ class Network:
         # segment_length = 50  # 预设的参数
         for tower in self.towers:
             gnd = self.ground if self.global_ground == 1 else tower.ground
-            tower_building(tower, self.f0, self.max_length, gnd)
+            tower_building(tower, self.f0, self.max_length, gnd, varied_frequency)
             self.switch_disruptive_effect_models.extend(tower.lump.switch_disruptive_effect_models)
             self.voltage_controled_switchs.extend(tower.lump.voltage_controled_switchs)
             self.time_controled_switchs.extend(tower.lump.time_controled_switchs)
@@ -134,31 +134,31 @@ class Network:
         measure_result = {}
         for k,v in self.measurement.items():
             print("ddd")
-            # if v[0] == 0 or v[0]==1:
-            #     for bran in v[2]:
-            #         voltage = {bran:self.solution.loc[bran].tolist()}
-            #
-            #     node1 = self.solution.loc[v[3]].tolist()
-            #     node2 = self.solution.loc[v[4]].tolist()
-            #     current = [abs(a-b) for a,b in zip(node1,node2)]
-            #     if v[1] == 1:
-            #         measure_result[k] = current
-            #     elif v[1] == 2:
-            #         measure_result[k] = voltage
-            #     elif v[1] == 3:
-            #         measure_result[k] = [a*b for a,b in zip(current,voltage)]
-            #     elif v[1] == 4:
-            #         measure_result[k] = [current,voltage]
-            #     elif v[1] == 11:
-            #         p = [a*b for a,b in zip(current,voltage)]
-            #         measure_result[k] = sum([i*self.dt for i in p])
-            #
-            #
-            #
-            #     print('Current of ' +k+' is:')
-            #     print(current)
-            #     print('Voltage of ' +k+' is:')
-            #     print(voltage)
+            if v[0] == 0 or v[0]==1:
+                for bran in v[2]:
+                    voltage = {bran:self.solution.loc[bran].tolist()}
+
+                node1 = self.solution.loc[v[3]].tolist()
+                node2 = self.solution.loc[v[4]].tolist()
+                current = [abs(a-b) for a,b in zip(node1,node2)]
+                if v[1] == 1:
+                    measure_result[k] = current
+                elif v[1] == 2:
+                    measure_result[k] = voltage
+                elif v[1] == 3:
+                    measure_result[k] = [a*b for a,b in zip(current,voltage)]
+                elif v[1] == 4:
+                    measure_result[k] = [current,voltage]
+                elif v[1] == 11:
+                    p = [a*b for a,b in zip(current,voltage)]
+                    measure_result[k] = sum([i*self.dt for i in p])
+
+
+
+                print('Current of ' +k+' is:')
+                print(current)
+                print('Voltage of ' +k+' is:')
+                print(voltage)
 
 
 
