@@ -37,7 +37,7 @@ class baseStrategy(Strategy):
             for i in range(time_length - 1):
                 Vnode = out[:nodes, i].reshape((-1,1))
                 Ibran = out[nodes:, i].reshape((-1,1))
-                Isource = source[:,i].reshape((-1,1))
+                Isource = source[:,i+1].reshape((-1,1))
                 LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
                 inv_LEFT = np.linalg.inv(LEFT)
                 RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
@@ -61,7 +61,7 @@ class baseStrategy(Strategy):
                 imb = network.incidence_matrix_B.T.to_numpy()  # 点线
                 Vnode = out[:nodes, i].reshape((-1, 1))
                 Ibran = out[nodes:, i].reshape((-1, 1))
-                Isource = source[:, i].reshape((-1, 1))
+                Isource = source[:, i+1].reshape((-1, 1))
                 LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
                 inv_LEFT = np.linalg.inv(LEFT)
                 RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
@@ -73,7 +73,7 @@ class baseStrategy(Strategy):
                                            index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
                 t = dt * (i + 1)
-                network.update_H(temp_result, t, dt)
+                network.update_H(temp_result, t)
 
             network.solution = pd.DataFrame(out,
                                             index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
