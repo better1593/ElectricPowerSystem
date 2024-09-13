@@ -131,35 +131,41 @@ class Network:
 
     def run_measurement(self):
         #lumpname/branname: label,probe,branname,n1,n2,(towername)
-        measure_result = {}
-        for k,v in self.measurement.items():
-            print("ddd")
-            if v[0] == 0 or v[0]==1:
-                for bran in v[2]:
-                    voltage = {bran:self.solution.loc[bran].tolist()}
+        results = {}
 
-                node1 = self.solution.loc[v[3]].tolist()
-                node2 = self.solution.loc[v[4]].tolist()
-                current = [abs(a-b) for a,b in zip(node1,node2)]
-                if v[1] == 1:
-                    measure_result[k] = current
-                elif v[1] == 2:
-                    measure_result[k] = voltage
-                elif v[1] == 3:
-                    measure_result[k] = [a*b for a,b in zip(current,voltage)]
-                elif v[1] == 4:
-                    measure_result[k] = [current,voltage]
-                elif v[1] == 11:
-                    p = [a*b for a,b in zip(current,voltage)]
-                    measure_result[k] = sum([i*self.dt for i in p])
+        for key, value in self.measurement.items():
+            data_type = value[0]  # 0:'branch',1: 'normal lump'
+            measurement_type = value[1]  # 1:'current',2:'voltage'
 
+            # 处理支路名或节点名
+            if data_type == 0:
+                branch_name = key
+                if measurement_type == 1:
+                    results[key] = self.solution.loc[branch_name].tolist()
+                elif measurement_type == 2:
+                    node1 = self.solution.get(value[3], None)
+                    node2 = self.solution.get(value[4], None)
+                    min = [abs(a - b) for a, b in zip(node1, node2)]
+                    results[key] = min
+            elif data_type == 1:
+                lump_name = key
+                # 处理支路名可能是列表的情况
+                branches = value[2] if isinstance(value[3], list) else [value[3]]
+                if measurement_type == 1:
+                    dict_result = {}
+                    for branch in branches:
+                        dict_result[branch] = self.solution.loc[branch].tolist()
+                    results[lump_name] = dict_result
+                elif measurement_type == 2:
+                    dict_result = {}
+                    for bran,n1,n2 in zip(value[2],value[3],value[4]):
+                        node1 = self.solution.loc[n1].tolist()
+                        node2 = self.solution.loc[n2].tolist()
+                        min = [abs(a - b) for a, b in zip(node1, node2)]
+                        dict_result[bran] = min
+                    results[lump_name] = dict_result
 
-
-                print('Current of ' +k+' is:')
-                print(current)
-                print('Voltage of ' +k+' is:')
-                print(voltage)
-
+        return results
 
 
 
