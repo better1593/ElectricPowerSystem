@@ -198,12 +198,12 @@ class Network:
 
 
     #更新H矩阵和判断绝缘子是否闪络
-    def update_H(self, current_result, time,dt):
+    def update_H(self, current_result, time):
         for switch_v_list in [self.switch_disruptive_effect_models, self.voltage_controled_switchs]:
             for switch_v in switch_v_list:
                 v1 = current_result.loc[switch_v.node1[0], 0] if switch_v.node1[0] != 'ref' else 0
                 v2 = current_result.loc[switch_v.node2[0], 0] if switch_v.node2[0] != 'ref' else 0
-                resistance = switch_v.update_parameter(abs(v1-v2), dt)
+                resistance = switch_v.update_parameter(abs(v1-v2), self.dt)
                 self.resistance_matrix.loc[switch_v.bran[0], switch_v.bran[0]] = resistance
 
         for switch_t in self.time_controled_switchs:
@@ -248,7 +248,7 @@ class Network:
             ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
         # 2. 初始化电网，根据电网信息计算源
         self.initialize_network(load_dict, frq,VF,self.dt,self.T)
-
+        self.Nt = int(np.ceil(self.T/self.dt))
         # 2. 保存支路节点信息
         self.calculate_branches(self.max_length)
 
