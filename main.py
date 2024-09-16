@@ -10,7 +10,9 @@ if __name__ == '__main__':
     file_name = "01_8"
     varied_frequency = np.arange(0, 37, 9)
     network = Network()
-    network.run(file_name)
+    change = Strategy.Change_DE_max()
+    network.run(file_name,change)
+
     print(network.solution)
     print(network.measurement)
 
