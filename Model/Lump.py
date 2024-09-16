@@ -823,9 +823,7 @@ class Switch_Disruptive_Effect_Model(Component):
             # self.DE += (voltage - self.parameters['v_initial']) ** self.parameters['k']
             self.DE = self.DE + (voltage - self.parameters['v_initial'])*dt
 
-
-
-        if self.DE >= self.parameters['DE_max']:
+        if self.DE >= self.parameters['DE_max']: #闪络
             self.on_off = -1
         return 10 ** (self.on_off * 6)
 
