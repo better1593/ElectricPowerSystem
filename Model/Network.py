@@ -9,13 +9,15 @@ from Driver.initialization.initialization import initialize_OHL, initialize_towe
 from Driver.modeling.OHL_modeling import OHL_building
 from Driver.modeling.cable_modeling import cable_building
 from Driver.modeling.tower_modeling import tower_building
+from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrent_calculate
 
 from Model.Cable import Cable
 from Model.Lightning import Lightning
 from Model.Tower import Tower
 from Model.Wires import OHLWire
-from Utils.Math import distance
+from Utils.Math import distance, segment_branch
 import Model.Strategy as Strategy
+from Model.Contant import Constant
 
 class Network:
     def __init__(self, **kwargs):
@@ -126,15 +128,46 @@ class Network:
 
     # initialize external source
     def initialize_source(self, load_dict,dt):
-        nodes = self.capacitance_matrix.columns.tolist()
-        self.sources =initial_source(self, nodes, load_dict, dt=dt)
+        self.sources =initial_source( load_dict, dt=dt)
 
     def run_measurement(self,strategy):
         #lumpname/branname: label,probe,branname,n1,n2,(towername)
         return strategy.apply(measurement=self.measurement,solution=self.solution)
 
 
+    def source_calculate(self,lightning,load_dict):
+        nodes = self.capacitance_matrix.columns.tolist()
 
+        branches = segment_branch(self.branches)
+        start = [list(l[0].values())[0] for l in list(branches.values())]
+        end = [list(l[1].values())[0] for l in list(branches.values())]
+        branches = list(branches.keys())  # 让branches只存储支路的列表，可节省内存
+        pt_start = np.array(start)
+        pt_end = np.array(end)
+        constants = Constant()
+        constants.ep0 = 8.85e-12
+        U_out = pd.DataFrame()
+        I_out = pd.DataFrame()
+        for i in range(len(lightning.strokes)):
+            U_out = pd.concat([U_out, InducedVoltage_calculate(pt_start, pt_end, branches, lightning,
+                                                               stroke_sequence=i, constants=constants)], axis=1,
+                              ignore_index=True)
+            I_out = pd.concat(
+                [I_out, LightningCurrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"],
+                                                   self, nodes, lightning, stroke_sequence=i)], axis=1,
+                ignore_index=True)
+        # Source_Matrix = pd.concat([I_out, U_out], axis=0)
+        lumps = [tower.lump for tower in self.towers]
+        devices = [tower.devices for tower in self.towers]
+        for lump in lumps:
+            U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
+            I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
+        for lumps in list(map(lambda device: device.arrestors + device.insulators + device.transformers, devices)):
+            for lump in lumps:
+                U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
+                I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
+
+        return pd.concat([U_out,I_out],axis=0)
 
     #R,L,G,C矩阵合并
     def combine_parameter_matrix(self):
@@ -226,7 +259,7 @@ class Network:
             max_length = load_dict['Global']['max_length']
             global_ground = load_dict['Global']['ground']['glb']
             ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
-        # 2. 初始化电网，根据电网信息计算源
+        # 1. 初始化电网，根据电网信息计算源
         self.initialize_network(load_dict, frq,VF,self.dt,self.T)
         self.Nt = int(np.ceil(self.T/self.dt))
         # 2. 保存支路节点信息
@@ -235,7 +268,9 @@ class Network:
         # 3. 初始化源，计算结果
         if load_dict["Source"]["Lightning"]:
             light = load_dict["Source"]["Lightning"]
-            self.initialize_source(light,self.dt)
+            lightning = initial_source(light, dt=self.dt)
+            self.sources = self.source_calculate(lightning,light)
+
 
 
 

@@ -44,6 +44,29 @@ class Linear(Strategy):
         network.solution = pd.DataFrame(out,
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
+class Change_light_pos(Strategy):
+    def apply(self,network,lightning,new_pos,dt):
+        print("change light position calculation is used")
+
+        lightning.channel.hit_pos = new_pos["position"]
+        network.source_calculate(lightning, new_pos)
+
+class Change_light_waveform(Strategy):
+    def apply(self, network, lightning, new_waveform, pos_dict):
+        print("change light position calculation is used")
+
+        lightning.channel.hit_pos = new_waveform["position"]
+        network.source_calculate(lightning, pos_dict)
+
+class Change_light_waveform(Strategy):
+    def apply(self, network, lightning, new_parameters, pos_dict):
+        print("change light position calculation is used")
+        for stroke in lightning.strokes:
+            stroke.parameters = new_parameters #
+            stroke.current_waveform = []
+            stroke.calculate()
+        network.source_calculate(lightning, pos_dict)
+
 class NonLinear(Strategy):
     def apply(self,network,dt):
         print("Nonlinear calculation is used")
@@ -77,6 +100,17 @@ class NonLinear(Strategy):
 
         network.solution = pd.DataFrame(out,
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+
+
+class Change_DE_max(Strategy):
+    def apply(self,network,dt):
+        network.reverse_H()
+        for lump in network.switch_disruptive_effect_models.parameters:
+            lump['DE_max'] = 100
+        network.calculate(dt)
+
+
+
 
 class Measurement(Strategy):
     def apply(self,measurement,solution,dt):

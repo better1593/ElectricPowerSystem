@@ -403,7 +403,7 @@ def initial_device(device_data, dt, T,measurement):
 
     return devices,measurement
 
-def initial_source(network, nodes, load_dict,dt):
+def initial_source( load_dict,dt):
     # 0. read json file
     stroke_list = []
     for stroke_dict in load_dict['Stroke']:
@@ -412,34 +412,8 @@ def initial_source(network, nodes, load_dict,dt):
         stroke.calculate()
         stroke_list.append(stroke)
     lightning =Lightning(id=1, type= load_dict['type'], strokes=stroke_list, channel=Channel(load_dict['position']))
-    branches = segment_branch(network.branches)
-    start = [list(l[0].values())[0] for l in list(branches.values())]
-    end = [list(l[1].values())[0] for l in list(branches.values())]
-    branches = list(branches.keys())  # 让branches只存储支路的列表，可节省内存
-    pt_start = np.array(start)
-    pt_end = np.array(end)
-    constants = Constant()
-    constants.ep0 = 8.85e-12
-    U_out = pd.DataFrame()
-    I_out = pd.DataFrame()
-    for i in range(len(stroke_list)):
-        U_out = pd.concat([U_out, InducedVoltage_calculate(pt_start, pt_end, branches, lightning,
-                            stroke_sequence=i, constants=constants)], axis=1,ignore_index=True)
-        I_out = pd.concat([I_out, LightningCurrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"],
-                            network, nodes, lightning, stroke_sequence=i)],axis=1,ignore_index=True)
-   # Source_Matrix = pd.concat([I_out, U_out], axis=0)
-    lumps = [tower.lump for tower in network.towers]
-    devices = [tower.devices for tower in network.towers]
-    for lump in lumps:
-        U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
-        I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
-    for lumps in list(map(lambda device:device.arrestors+device.insulators+device.transformers , devices)):
-        for lump in lumps:
-            U_out = U_out.add(lump.voltage_source_matrix, fill_value=0).fillna(0)
-            I_out = I_out.add(lump.current_source_matrix, fill_value=0).fillna(0)
-    Source_Matrix = pd.concat([U_out, I_out], axis=0)
-    return Source_Matrix
 
+    return lightning
 def initialize_cable(cable, max_length,VF):
 
     # 0. initialize info
