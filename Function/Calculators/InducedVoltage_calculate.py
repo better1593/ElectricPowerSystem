@@ -187,7 +187,7 @@ def H_MagneticField_calculate(pt_start, pt_end, stroke, channel, ep0, vc):
     i_sr = i_sr.reshape(1, -1)
 
     # 时刻的序列
-    t_sr = stroke.t_us
+    t_sr = stroke.t_us * 1e6
     t_sr = t_sr.reshape(1, -1)
 
     # 雷电通道每段的中点z坐标和镜像通道的z坐标
