@@ -1241,7 +1241,7 @@
   },
 
   "Sensitivity_analysis":{
-    "Stoke": [],
+    "Stroke": [],
     "Soil": [],
     "Arrester": [],
     "ROD": []
