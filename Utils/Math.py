@@ -177,6 +177,8 @@ def calculate_electric_field_down_r_and_z(pt_start, pt_end, stroke, channel, z_c
     # 初始化径向和垂直方向的电场
     a00 = pt_start.shape[0]  # 观察点或导体分段的总数
     b00 = z_channel.shape[0]
+    Er_T = np.zeros((stroke.Nt, a00))
+    Ez_T = np.zeros((stroke.Nt, a00))
 
     line_mid_points = (pt_start + pt_end) / 2
     channel_mid_points = np.column_stack( (np.full(z_channel.shape[0], channel.hit_pos[0]), np.full(z_channel.shape[0], channel.hit_pos[1]), z_channel))

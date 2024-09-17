@@ -249,8 +249,8 @@ class Network:
         ])
         VF = {'odc': 10,
               'frq': frq}
-        #self.dt = 1e-8
-        #self.T = 0.003
+        self.dt = 1e-8
+        self.T = 0.003
         # 是否有定义
         if 'Global' in load_dict:
             self.dt = load_dict['Global']['delta_time']

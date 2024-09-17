@@ -99,7 +99,7 @@ def initialize_ground(ground_dic):
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
 def initalize_wire_measurement(wire,measurement,tower_name):
-    if wire['probe']:
+    if 'probe' in wire:
         measurement[wire['bran']] = [0,wire[ 'probe'],wire['bran'],wire['node1'],wire['node2'],tower_name]
 
 
@@ -116,23 +116,27 @@ def initialize_tower(tower_dict, max_length, dt, T,VF):
     measurement = {}
     for wire in tower_dict['Wire']:
 
-        initalize_wire_measurement(wire,measurement,tower_dict['Info']['name'])
+
         # 1.1 initialize air wire
         if wire['type'] == 'air':
+            initalize_wire_measurement(wire, measurement, tower_dict['Info']['name'])
             wire_air = initialize_wire(wire, nodes,VF)
             wires.add_air_wire(wire_air)  # add air wire in wires
 
         # 1.2 initialize ground wire
         elif wire['type'] == 'ground':
+            initalize_wire_measurement(wire, measurement, tower_dict['Info']['name'])
             wire_ground = initialize_wire(wire, nodes,VF)
             wires.add_ground_wire(wire_ground)  # add ground wire in wires
 
         # 1.3 initialize tube
         elif wire['type'] == 'tube':
+            initalize_wire_measurement(wire['sheath'], measurement, tower_dict['Info']['name'])
             sheath_wire = initialize_wire(wire['sheath'], nodes,VF)
             tube_wire = TubeWire(sheath_wire, wire['sheath']['rs1'], wire['sheath']['rs3'], wire['sheath']['num'])
 
             for core in wire['core']:
+                initalize_wire_measurement(core, measurement, tower_dict['Info']['name'])
                 core_wire = initialize_wire(core, nodes,VF)
                 tube_wire.add_core_wire(core_wire)
 
@@ -315,8 +319,8 @@ def initial_lump(lump_data, dt, T,measurement):
                     Mutual_Inductance_Three_Port(name, bran_name, node1, node2, resistance, inductance))
             case 'NLR':
                 resistance = lump['value1']
-                model = lump['model']
-                if model != None:
+                #model = lump['model']
+                if 'model' in  lump:
                     nolinear_model = eval('nolinear_element_parameters.' + str(model))
                     vi_characteristics = nolinear_model['vi_characteristics']
                     ri_characteristics = nolinear_model['ri_characteristics']

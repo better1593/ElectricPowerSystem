@@ -7,11 +7,12 @@ import numpy as np
 
 if __name__ == '__main__':
     # 1. 接收到创建新电网指令
-    file_name = "01_8"
+    file_name = "01_tube"
     varied_frequency = np.arange(0, 37, 9)
     network = Network()
     change = Strategy.Change_DE_max()
     network.run(file_name,change)
+
 
     print(network.solution)
     print(network.measurement)

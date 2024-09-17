@@ -55,11 +55,11 @@ class Component:
         【出参】
         gc(pandas.Dataframe:Nnode*Nnode)：电导电容矩阵（Nnode：节点数）
         """
-        if node1 != 'ref':
+        if node1 != 'ref' and node1:
             gc.loc[node1, node1] += value
-        if node2 != 'ref':
+        if node2 != 'ref' and node2:
             gc.loc[node2, node2] += value
-        if node1 != 'ref' and node2 != 'ref':
+        if node1 != 'ref' and node2 != 'ref' and node1 and node2:
             gc.loc[node1, node2] -= value
             gc.loc[node2, node1] -= value
             
