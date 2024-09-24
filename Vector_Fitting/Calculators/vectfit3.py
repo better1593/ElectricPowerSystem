@@ -37,7 +37,6 @@ Created by:   Bjorn Gustavsen.
 """
 
 from math import pi, sqrt
-import pyarma
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -348,11 +347,7 @@ class VectorFit3:
                     # A_temp is a vector  accounting for Eq. (8) in [2]; it is stacked below the last row of A
                     # A is called [X -HvX] in Eq. (10) in [3].  Used to avoid the null solution by adding to the LS problem.
                     A = np.vstack((A, A_temp))
-                # Q2, R2 = np.linalg.qr(A)  # Solve as in Eq. (10) in [3] to implement the fast implementation of VF
-                A = pyarma.mat(A)
-                Q, R = pyarma.qr_econ(A)
-                Q = np.array(Q)
-                R = np.array(R)
+                Q, R = np.linalg.qr(A)  # Solve as in Eq. (10) in [3] to implement the fast implementation of VF
                 ind1 = self.N + offs
                 ind2 = self.N + offs + self.N + 1
                 R22 = R[ind1:ind2, ind1:ind2]   # R22 is used in Eq. (11) in [3]
