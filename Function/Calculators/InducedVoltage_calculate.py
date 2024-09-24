@@ -187,7 +187,7 @@ def H_MagneticField_calculate(pt_start, pt_end, stroke, channel, ep0, vc):
     i_sr = i_sr.reshape(1, -1)
 
     # 时刻的序列
-    t_sr = stroke.t_us
+    t_sr = stroke.t_us * 1e6
     t_sr = t_sr.reshape(1, -1)
 
     # 雷电通道每段的中点z坐标和镜像通道的z坐标
@@ -288,19 +288,19 @@ def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
 
 
 if __name__ == "__main__":
-    # 定义lightning
-    stroke1 = Stroke('Heidler', duration=1.0e-3, is_calculated=True, parameter_set='0.25/100us', parameters=None)
+    # 定义间接雷
+    stroke1 = Stroke('Heidler', duration=1.0e-3, dt=1.0e-8, is_calculated=True, parameter_set='0.25/100us', parameters=None)
     stroke1.calculate()
     channel = Channel(hit_pos=[500, 50, 0])
-    lightning = Lightning(id=1, type='Direct', strokes=[stroke1], channel=channel)
+    lightning = Lightning(id=1, type='Indirect', strokes=[stroke1], channel=channel)
     # 定义常数
     constants = Constant()
     constants.ep0 = 8.85e-12
 
     Nodes = ['X01', 'X02', 'X03']
     node = 'X02'
-    I = LightningCurrent_calculate(Nodes=Nodes, node=node, lightning=lightning, stroke_sequence=0)
-    print(I.loc[node, 999])
+    # I = LightningCurrent_calculate(Nodes=Nodes, node=node, lightning=lightning, stroke_sequence=0)
+    # print(I.loc[node, 999])
     pt_start = pd.read_excel('pt_start.xlsx', header=None)
     pt_start = pt_start.to_numpy()
     pt_end = pd.read_excel('pt_end.xlsx', header=None)

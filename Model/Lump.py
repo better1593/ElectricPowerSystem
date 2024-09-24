@@ -815,7 +815,7 @@ class Switch_Disruptive_Effect_Model(Component):
 
     def update_parameter(self, voltage, dt):
         """
-        【函数功能】破坏效应值计算
+        【函数功能】破坏效应值计算，闪络判断
         【入参】
         voltage (float): 器件电压。
         """
@@ -823,7 +823,7 @@ class Switch_Disruptive_Effect_Model(Component):
             # self.DE += (voltage - self.parameters['v_initial']) ** self.parameters['k']
             self.DE = self.DE + (voltage - self.parameters['v_initial'])*dt
 
-        if self.DE >= self.parameters['DE_max']:
+        if self.DE >= self.parameters['DE_max']: #闪络
             self.on_off = -1
         return 10 ** (self.on_off * 6)
 
@@ -938,7 +938,7 @@ class Lumps:
         self.grounds = grounds or []
         self.switch_disruptive_effect_models = switch_disruptive_effect_models or []
         self.MTCKs = MTCKs or []
-    
+
     def brans_nodes_list_initial(self):
         """
         初始化Lump 对象中所有支路和所有节点的集合。
