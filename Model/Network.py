@@ -3,12 +3,13 @@ import json
 import numpy as np
 import pandas as pd
 from functools import reduce
+from scipy.linalg import block_diag
 
 from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump, \
     initialize_cable, initialize_ground
-from Driver.modeling.OHL_modeling import OHL_building
-from Driver.modeling.cable_modeling import cable_building
-from Driver.modeling.tower_modeling import tower_building
+from Driver.modeling.OHL_modeling import OHL_building, OHL_building_variant_frequency
+from Driver.modeling.cable_modeling import cable_building, cable_building_variant_frequency
+from Driver.modeling.tower_modeling import tower_building, tower_building_variant_frequency
 
 from Model.Cable import Cable
 from Model.Lightning import Lightning
@@ -103,7 +104,7 @@ class Network:
         # segment_length = 50  # 预设的参数
         for tower in self.towers:
             gnd = self.ground if self.global_ground == 1 else tower.ground
-            tower_building(tower, self.f0, self.max_length, gnd, varied_frequency)
+            tower_building(tower, self.f0, gnd)
             self.switch_disruptive_effect_models.extend(tower.lump.switch_disruptive_effect_models)
             self.voltage_controled_switchs.extend(tower.lump.voltage_controled_switchs)
             self.time_controled_switchs.extend(tower.lump.time_controled_switchs)
@@ -116,10 +117,10 @@ class Network:
                     self.nolinear_resistors.extend(device.nolinear_resistors)
         for ohl in self.OHLs:
             gnd = self.ground if self.global_ground == 1 else ohl.ground
-            OHL_building(ohl, self.max_length, self.varied_frequency, gnd)
+            OHL_building(ohl, self.max_length)
         for cable in self.cables:
             gnd = self.ground if self.global_ground == 1 else cable.ground
-            cable_building(cable, self.f0, self.varied_frequency, gnd)
+            cable_building_variant_frequency(cable, self.f0, self.varied_frequency, gnd, self.dt)
 
         # 3. combine matrix
         self.combine_parameter_matrix()
@@ -190,6 +191,24 @@ class Network:
             component_current = abs(current_result.loc[nolinear_resistor.bran[0], 0])
             resistance = nolinear_resistor.update_parameter(component_current)
             self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
+
+    def update_source_variant_frequency(self, current_result, next_point):
+        for tower in self.towers:
+            I = current_result.loc[tower.wires_name, 0].to_numpy()
+            tower.phi = tower.A.dot(I) + tower.B * tower.phi
+            phi_hist = (tower.B * tower.phi).sum(-1)
+            self.sources.loc[tower.wires_name, next_point] += phi_hist
+
+        for model_list in [self.OHLs, self.cables]:
+            for model in model_list:
+                I = current_result.loc[model.wires_name, 0].to_numpy()
+                n = int(I.shape[0] / model.A.shape[0])
+                A = np.array([])
+                for i in range(n):
+                    A = block_diag(A, model.A)
+                model.phi = A.dot(I) + model.B * model.phi
+                phi_hist = (model.B * model.phi).sum(-1)
+                self.sources.loc[model.wires_name, next_point] += phi_hist
 
     #执行不同的算法
     def calculate(self,dt):

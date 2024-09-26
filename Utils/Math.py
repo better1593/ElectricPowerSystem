@@ -95,8 +95,9 @@ def segment_branch(network_branches):
     """
     branches = network_branches.copy()  # branches的副本，用于新增或删减支路
     for key, value in network_branches.items():
+        # key是支路， value是起点，终点，分段数
         keys_tobe_delete = []
-        if 'OHL' in value[2]:
+        if 'OHL' in value[2]  and value[3] != 1:
             start_node_coord = list(value[0].values())[0]
             end_node_coord = list(value[1].values())[0]
             # 生成新节点

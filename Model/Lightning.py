@@ -16,7 +16,7 @@ class StrokeParameters:
         '0.25/100us': [0.9, 0.25, 100, 2],
         '0.25/2.5us': [10.7, 0.25, 2.5, 2],
         '8/20us': [30.85, 8, 20, 2.4],
-        '2.6/50us': [10e4, 2.6, 50, 2.1],
+        '2.6/50us': [10e5, 2.6, 50, 2.1],
         '10/350us': [44.43, 10, 350, 2.1]
     }
 
@@ -134,12 +134,12 @@ class Stroke:
         # Calculate only when is_calculated==True
         if self.is_calculated:
             if self.stroke_type == 'CIGRE':
-                self.current_waveform = self.add_cos_window_to_waveform_tail(self.cigre_waveform(self.t_us))
-                # self.current_waveform = self.cigre_waveform(self.t_us)
+                # self.current_waveform = self.add_cos_window_to_waveform_tail(self.cigre_waveform(self.t_us))
+                self.current_waveform = self.cigre_waveform(self.t_us)
                 return self.current_waveform
             elif self.stroke_type == 'Heidler':
-                self.current_waveform = self.add_cos_window_to_waveform_tail(self.heidler_waveform(self.t_us))
-                # self.current_waveform = self.heidler_waveform(self.t_us)
+                # self.current_waveform = self.add_cos_window_to_waveform_tail(self.heidler_waveform(self.t_us))
+                self.current_waveform = self.heidler_waveform(self.t_us)
                 return self.current_waveform
         return 0
 

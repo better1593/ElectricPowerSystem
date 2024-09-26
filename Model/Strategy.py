@@ -79,6 +79,40 @@ class NonLinear(Strategy):
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
 
+class variant_frequency(Strategy):
+    def apply(self, network, dt):
+        print("Nonlinear calculation is used")
+        branches, nodes = network.incidence_matrix_A.shape
+        time_length = len(network.sources.columns.tolist())
+        out = np.zeros((branches + nodes, time_length))
+        C = network.capacitance_matrix.to_numpy()  # 点点
+        G = network.conductance_matrix.to_numpy()
+        L = network.inductance_matrix.to_numpy()  # 线线
+        R = network.resistance_matrix.to_numpy()
+        ima = network.incidence_matrix_A.to_numpy()  # 线点
+        imb = network.incidence_matrix_B.T.to_numpy()  # 点线
+        # source = np.array(sources)
+        for i in range(time_length - 1):
+            source = np.array(network.sources)
+            Vnode = out[:nodes, i].reshape((-1, 1))
+            Ibran = out[nodes:, i].reshape((-1, 1))
+            Isource = source[:, i + 1].reshape((-1, 1))
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
+            inv_LEFT = np.linalg.inv(LEFT)
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
+
+            temp_result = inv_LEFT.dot(Isource + RIGHT)
+            # temp_result = inv_LEFT.dot(RIGHT)
+            out[:, i + 1] = np.copy(temp_result)[:, 0]
+            temp_result = pd.DataFrame(temp_result,
+                                       index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+
+            network.update_source_variant_frequency(temp_result, i+2)
+
+        network.solution = pd.DataFrame(out,
+                                        index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+
+
 class Change_DE_max(Strategy):
     def apply(self,network,dt):
         network.reverse_H()
