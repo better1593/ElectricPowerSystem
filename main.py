@@ -18,7 +18,7 @@ if __name__ == '__main__':
     network = Network()
     change = Strategy.Change_DE_max()
     network.run(load_dict,change)
-    pd.DataFrame(network.run_measure()).to_csv("output.csv")
+    pd.DataFrame(network.run_measure()).to_csv("ROD.csv")
 
 
 

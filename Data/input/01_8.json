@@ -329,7 +329,7 @@
       ],
       "Lump": [
         {
-          "Type": "RL",
+          "Type": "ROD",
           "name": "GRID",
           "probe": null,
           "bran_name": "Y09_Tower_1",
@@ -843,7 +843,7 @@
         {
           "Type": "RL",
           "name": "GRID1",
-          "probe": null,
+          "probe": 2,
           "bran_name": "Y09_Tower_2",
           "node1": "X28",
           "node2": "ref",
@@ -1242,7 +1242,11 @@
 
   "Sensitivity_analysis":{
     "Stroke": {
-      "position": [],
+      "position": [10,-0.4,10],
+      "area": "OHL_1",
+      "wire": null,
+      "cir_id": 3001,
+      "phase": "A",
       "waveform": [],
       "paramenters": []
     },
@@ -1260,7 +1264,10 @@
       "ground": []
     },
     "ROD": {
-      "lump": null
+      "tower": null,
+      "lump": null,
+      "r": null,
+      "l": null
 
     },
     "DE": null,

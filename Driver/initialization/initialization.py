@@ -9,7 +9,7 @@ from Model.Lump import Lumps, Resistor_Inductor, Conductor_Capacitor, \
     Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
     Current_Control_Current_Source, Transformer_One_Phase, Transformer_Three_Phase, Mutual_Inductance_Two_Port, \
     Mutual_Inductance_Three_Port, Nolinear_Resistor, Nolinear_F, Voltage_Controled_Switch, Time_Controled_Switch, A2G, \
-    Switch_Disruptive_Effect_Model, Nolinear_Element_Parameters, Switch_Parameters
+    Switch_Disruptive_Effect_Model, Nolinear_Element_Parameters, Switch_Parameters, ROD
 from Model.Node import Node
 from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
@@ -355,11 +355,11 @@ def initial_lump(lump_data, dt, T,measurement):
                 resistance = lump['value1']
                 lumps.add_a2g(
                     A2G(name, bran_name, node1, node2, resistance))
-            case 'GOD':
+            case 'ROD':
                 resistance = lump['value1']
                 inductance = lump['value2']
-                lumps.add_a2g(
-                    Ground(name, bran_name, node1, node2, resistance, inductance))
+                lumps.add_ROD(
+                    ROD(name, bran_name, node1, node2, resistance, inductance))
             case "swh":
                 resistance = lump['value1']
                 model = lump['model']

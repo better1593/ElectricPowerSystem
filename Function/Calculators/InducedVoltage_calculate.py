@@ -41,9 +41,10 @@ def LightningCurrent_calculate(p1, p2, position, network, node_index, lightning,
             selected_wire = [wire for wire in list(selected_tower[0].wires.get_all_wires().values()) if
                              wire.name.split("_")[0] == p2]
         elif area == "OHL":
-            selected_ohl = [ohl for ohl in network.ohls if ohl.name == p1]
+            selected_ohl = [ohl for ohl in network.OHLs if ohl.name == p1]
             selected_wire = [wire for wire in list(selected_ohl[0].wires.get_all_wires().values()) if
                              wire.name.split("_")[0] == p2]
+            print("end")
         elif area == "cable":
             selected_cable = [cable for cable in network.cables if cable.name == p1]
             selected_wire = [wire for wire in list(selected_cable[0].wires.get_all_wires().values()) if

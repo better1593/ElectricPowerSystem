@@ -2,9 +2,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from Driver.modeling.tower_modeling import tower_building
-from Driver.initialization.initialization import initial_device,initial_lump
+from Driver.initialization.initialization import initial_device,initial_lump,initialize_tower
 import json
 import pickle
+from functools import reduce
+
 from Model import Network
 class Strategy(ABC):
 
@@ -50,11 +52,20 @@ class Linear(Strategy):
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
 class Change_light_pos(Strategy):
-    def apply(self,network,lightning,new_pos):
+    def apply(self,network,lightning,area,wire,new_pos):
         print("change light position calculation is used")
 
-        lightning.channel.hit_pos = new_pos["position"]
-        network.source_calculate(lightning, new_pos)
+        lightning.channel.hit_pos = new_pos
+        cir_id = wire['cir_id']
+        if wire['type'] == 'SW':
+            bran = 'Y' + str(cir_id) + 'S'
+            network.source_calculate(lightning, area, bran, new_pos)
+        elif wire['type'] == 'CIRO':
+            bran = 'Y' + str(cir_id) + wire['phase']
+            network.sources = network.source_calculate(lightning,area,bran, new_pos)
+        else:
+            network.sources = network.source_calculate(lightning, area, wire["name"], new_pos)
+        network.calculate()
 
 class Change_light_waveform(Strategy):
     def apply(self, network, lightning, new_waveform, pos_dict):
@@ -107,33 +118,18 @@ class Change_Arrestor_pos(Strategy):
 
 
 class Change_ROD(Strategy):
-    def apply(self, network, lump_dict,name,r,l, dt):
+    def apply(self, network, load_dict,lumpname,r,l):
         print("change ROD calculation is used")
-        for i,tower in enumerate(network.towers):
-            for lump in lump_dict:
-                if lump.name == name:
-                    network.switch_disruptive_effect_models.remove(lump.switch_disruptive_effect_models)
-                    network.voltage_controled_switchs.remove(lump.voltage_controled_switchs)
-                    network.time_controled_switchs.remove(lump.time_controled_switchs)
-                    network.nolinear_resistors.remove(lump.nolinear_resistors)
-
-
-                    lump_dict.value1 = r
-                    lump_dict.value2 = l
-                    lumps,measurement = initial_lump(lump_dict, network.dt, network.T,network.measurement)
-                    tower.lumps = lumps
-
-                    network.switch_disruptive_effect_models.extend(lump.switch_disruptive_effect_models)
-                    network.voltage_controled_switchs.extend(lump.voltage_controled_switchs)
-                    network.time_controled_switchs.extend(lump.time_controled_switchs)
-                    network.nolinear_resistors.extend(lump.nolinear_resistors)
-            network.towers[i] = tower
-            tower.reset_matrix()
-            gnd = network.ground if network.global_ground == 1 else tower.ground
-            tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
-
-            network.combine_parameter_matrix()
-            network.calculate(network.dt)
+        for tower in load_dict["Tower"]:
+            for lump in tower["Lump"]:
+                if lump["name"] == lumpname:
+                    lump["value1"] = r
+                    lump["value2"] = l
+        network.towers = []
+        network.initial_tower(load_dict)
+        network.combine_parameter_matrix()
+        network.calculate()
+        pd.DataFrame(network.run_measure()).to_csv("ROD_modified.csv")
 
 class Change_ground(Strategy):
     def apply(self,  load_dict, new_parameter):
@@ -145,6 +141,8 @@ class Change_ground(Strategy):
 
         network = Network()
         network.run(load_dict)
+
+
 class Change_SW(Strategy):
     def apply(self,  load_dict, name,position,bran):
 
@@ -161,6 +159,8 @@ class Change_SW(Strategy):
 
         network = Network()
         network.run(load_dict)
+
+
 class NonLinear(Strategy):
     def apply(self,network,dt):
         print("Nonlinear calculation is used")
@@ -205,8 +205,7 @@ class Change_DE_max(Strategy):
             network.switch_disruptive_effect_models[index] = lump
 
         network.calculate()
-        with open('output_change_DE.pkl', 'wb') as f:
-            pickle.dump(network.run_measure(), f)
+        pd.DataFrame(network.run_measure()).to_csv("DE_modified.csv")
 
 
 
@@ -250,6 +249,10 @@ class Measurement(Strategy):
                     node1 = solution.loc[n1].tolist() if n1 in solution.index else None
                     node2 = solution.loc[n2].tolist() if n2 in solution.index else None
                     voltage = [abs(a - b) for a, b in zip(node1, node2)] if (node1 and node2)  else None
+                    if n1 =="ref":
+                        voltage = node2
+                    if n2 =="ref":
+                        voltage = node1
                     p = [a * b for a, b in zip(current, voltage)] if (current and voltage)  else None
                     E = sum([i*dt for i in p ]) if p else None
 

@@ -54,11 +54,13 @@ class Network:
         self.ground = None
         self.dt =None
         self.T = None
-
+        self.VF = None
+        self.frq = None
         self.switch_disruptive_effect_models = []
         self.voltage_controled_switchs = []
         self.time_controled_switchs = []
         self.nolinear_resistors = []
+        self.lightning = None
     #记录电网元素之间的关系
     def calculate_branches(self, maxlength):
         tower_branch_node = {}
@@ -87,28 +89,13 @@ class Network:
                 Nt = int(np.ceil(distance(obj.info.HeadTower_pos, obj.info.TailTower_pos) / maxlength))
                 self.branches[wire.name] = [position_obj_start, position_obj_end, obj.info.name, Nt]
 
-    # initialize internal network elements
-    def initialize_network(self, load_dict, varied_frequency,VF,dt, T):
-        self.varied_frequency = varied_frequency
-
-
-        # 1. initialize all elements in the network
+    def initial_tower(self,load_dict):
         if 'Tower' in load_dict:
-            self.towers = [initialize_tower(tower, max_length=self.max_length,dt=dt,T = T,VF=VF) for tower in load_dict['Tower']]
+            self.towers = [initialize_tower(tower, max_length=self.max_length,dt=self.dt,T = self.T,VF=self.VF) for tower in load_dict['Tower']]
             self.measurement = reduce(lambda acc,tower:{**acc,**tower.Measurement},self.towers,{})
-        #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
-        if 'OHL' in load_dict:
-            self.OHLs = [initialize_OHL(ohl, max_length=self.max_length) for ohl in load_dict['OHL']]
-        if 'Cable' in load_dict:
-            self.cables = [initialize_cable(cable, max_length=self.max_length,VF=VF) for cable in load_dict['Cable']]
-
-        # 2. build dedicated matrix for all elements
-        # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
-        # segment_length = 50  # 预设的参数
-
         for tower in self.towers:
             gnd = self.ground if self.global_ground == 1 else tower.ground
-            tower_building(tower, self.f0, self.max_length, gnd, varied_frequency)
+            tower_building(tower, self.f0, self.max_length, gnd, self.frq)
             self.switch_disruptive_effect_models.extend(tower.lump.switch_disruptive_effect_models)
             self.voltage_controled_switchs.extend(tower.lump.voltage_controled_switchs)
             self.time_controled_switchs.extend(tower.lump.time_controled_switchs)
@@ -119,6 +106,24 @@ class Network:
                     self.voltage_controled_switchs.extend(device.voltage_controled_switchs)
                     self.time_controled_switchs.extend(device.time_controled_switchs)
                     self.nolinear_resistors.extend(device.nolinear_resistors)
+    # initialize internal network elements
+    def initialize_network(self, load_dict, varied_frequency,VF,dt, T):
+
+        self.initial_tower(load_dict)
+
+        # 1. initialize all elements in the network
+
+        #self.towers = reduce(lambda a, b: dict(a, **b), tower_list)
+        if 'OHL' in load_dict:
+            self.OHLs = [initialize_OHL(ohl, max_length=self.max_length) for ohl in load_dict['OHL']]
+        if 'Cable' in load_dict:
+            self.cables = [initialize_cable(cable, max_length=self.max_length,VF=VF) for cable in load_dict['Cable']]
+
+        # 2. build dedicated matrix for all elements
+        # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
+        # segment_length = 50  # 预设的参数
+
+
         for ohl in self.OHLs:
             gnd = self.ground if self.global_ground == 1 else ohl.ground
             OHL_building(ohl, self.max_length, self.varied_frequency, gnd)
@@ -252,14 +257,14 @@ class Network:
 
     def run(self,load_dict,*basestrategy):
         # 0. 手动预设值
-        frq = np.concatenate([
+        self.frq = np.concatenate([
             np.arange(1, 91, 10),
             np.arange(100, 1000, 100),
             np.arange(1000, 10000, 1000),
             np.arange(10000, 100000, 10000)
         ])
-        VF = {'odc': 10,
-              'frq': frq}
+        self.VF = {'odc': 10,
+              'frq': self.frq}
         self.dt = 1e-8
         self.T = 0.003
         # 是否有定义
@@ -271,7 +276,7 @@ class Network:
             global_ground = load_dict['Global']['ground']['glb']
             ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
         # 1. 初始化电网，根据电网信息计算源
-        self.initialize_network(load_dict, frq,VF,self.dt,self.T)
+        self.initialize_network(load_dict, self.frq,self.VF,self.dt,self.T)
         self.Nt = int(np.ceil(self.T/self.dt))
 
 
@@ -281,18 +286,52 @@ class Network:
         # 3. 初始化源，计算结果
         if load_dict["Source"]["Lightning"]:
             light = load_dict["Source"]["Lightning"]
-            lightning = initial_source(light, dt=self.dt)
-            self.sources = self.source_calculate(lightning,
+            self.lightning = initial_source(light, dt=self.dt)
+            if light["area"].split("_")[0] == "OHL":
+                for ohl in load_dict["OHL"]:
+                    if ohl["name"]==light["area"]:
+                        wire = ohl["Wire"]
+                        cir_id = wire['cir_id']
+                        if wire['type'] == 'SW':
+                            bran = 'Y' + str(cir_id) + 'S'
+                            self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+                        elif wire['type'] == 'CIRO':
+                            bran = 'Y' + str(cir_id) + wire['phase']
+                            self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+            if light["area"].split("_")[0] == "tower":
+                self.sources = self.source_calculate(self.lightning,
                                                  light["area"], light["wire"], light["position"])
 
         self.calculate()
 
 
     def sensitive_analysis(self,load_dict):
-        if load_dict["Sensitivity_analysis"]["Stroke"]["position"]:
-            Strategy.Change_light_pos().apply(self,load_dict["Source"]["Lightning"],
-                                            load_dict["Sensitivity_analysis"]["Stroke"]["position"])
 
+
+        if load_dict["Sensitivity_analysis"]["Stroke"]["position"]:
+            wire = load_dict["Sensitivity_analysis"]["Stroke"]["area"]
+            area = load_dict["Sensitivity_analysis"]["Stroke"]["area"]
+            if area.split("_")[0]=="tower":
+                for obj in load_dict["Tower"]:
+                    for w in obj["Wire"]:
+                        if load_dict["Sensitivity_analysis"]["Stroke"]["wire"]:
+                            if w["name"] ==wire:
+                                Strategy.Change_light_pos().apply(self,self.lightning,
+                                                  load_dict["Sensitivity_analysis"]["Stroke"]["area"],
+                                                  w,
+                                                load_dict["Sensitivity_analysis"]["Stroke"]["position"])
+            if area.split("_")[0] == "OHL":
+                for obj in load_dict["OHL"]:
+                    for w in obj["Wire"]:
+                        if load_dict["Sensitivity_analysis"]["Stroke"]["cir_id"]:
+                            if w["cir_id"] ==load_dict["Sensitivity_analysis"]["Stroke"]["cir_id"]\
+                                    and w["phase"] ==load_dict["Sensitivity_analysis"]["Stroke"]["phase"]:
+                                Strategy.Change_light_pos().apply(self, self.lightning,
+                                                                  load_dict["Sensitivity_analysis"]["Stroke"]["area"],
+                                                                  w,
+                                                                  load_dict["Sensitivity_analysis"]["Stroke"]["position"])
+                                break
+                    break
         if load_dict["Sensitivity_analysis"]["Stroke"]["waveform"]:
             Strategy.Change_light_waveform().apply(self,load_dict["Source"]["Lightning"],
                                                    load_dict["Sensitivity_analysis"]["Stroke"]["waveform"],
@@ -317,9 +356,15 @@ class Network:
             Strategy.Change_SW().apply(load_dict,name,position,bran)
 
         if load_dict["Sensitivity_analysis"]["DE"]:
-
             Strategy.Change_DE_max().apply(self,load_dict["Sensitivity_analysis"]["DE"])
 
+        if load_dict["Sensitivity_analysis"]["ROD"]:
+            for tower in load_dict["Tower"]:
+                if tower["name"] ==load_dict["Sensitivity_analysis"]["ROD"]["tower"]:
+                    Strategy.Change_ROD().apply(self,load_dict,
+                                        load_dict["Sensitivity_analysis"]["ROD"]["lump"],
+                                        load_dict["Sensitivity_analysis"]["ROD"]["r"],
+                                        load_dict["Sensitivity_analysis"]["ROD"]["l"])
 
        # self.calculate(self.dt)
 

@@ -83,7 +83,7 @@ class Tower:
         self.capacitance_matrix = self.H['capacitance_matrix']
         # 电导矩阵
         self.conductance_matrix = self.H['conductance_matrix']
-
+        self.wires_name = self.H['wires_name']
 
     def initialize_incidence_matrix(self):
         """
@@ -340,12 +340,7 @@ class Tower:
         self.inductance_matrix = df_L.add(self.lump.inductance_matrix, fill_value=0).fillna(0)
         self.capacitance_matrix = df_C.add(self.lump.capacitance_matrix, fill_value=0).fillna(0)
         self.conductance_matrix = df_G.add(self.lump.conductance_matrix, fill_value=0).fillna(0)
-        self.H["incidence_matrix_A"] = self.incidence_matrix_A
-        self.H["incidence_matrix_B"] = self.incidence_matrix_B
-        self.H["resistance_matrix"] = self.resistance_matrix
-        self.H["capacitance_matrix"] = self.capacitance_matrix
-        self.H["conductance_matrix"] = self.conductance_matrix
-        self.H["inductance_matrix"] = self.inductance_matrix
+
         del df_A
         del df_R
         del df_L
