@@ -50,6 +50,7 @@ class Tower:
         self.nodesPositions = Wires.get_node_coordinates()
         self.bransList = Wires.get_bran_coordinates()
         self.wires_name = []
+        self.H = {}
         # 以下是参数矩阵，是Tower建模最终输出的参数
         # 邻接矩阵
         wires_num = self.wires.count()
@@ -68,6 +69,21 @@ class Tower:
         self.conductance_matrix = np.zeros((Nodes_num, Nodes_num))
         # 阻抗矩阵
         self.impedance_martix = None
+
+
+    def reset_matrix(self):
+        self.incidence_matrix = self.H['incidence_matrix']
+        # 电阻矩阵
+        self.resistance_matrix = self.H['resistance_matrix']
+        # 电感矩阵
+        self.inductance_matrix = self.H['inductance_matrix']
+        # 电位矩阵
+        self.potential_matrix = self.H['potential_matrix']
+        # 电容矩阵
+        self.capacitance_matrix = self.H['capacitance_matrix']
+        # 电导矩阵
+        self.conductance_matrix = self.H['conductance_matrix']
+
 
     def initialize_incidence_matrix(self):
         """
@@ -324,12 +340,21 @@ class Tower:
         self.inductance_matrix = df_L.add(self.lump.inductance_matrix, fill_value=0).fillna(0)
         self.capacitance_matrix = df_C.add(self.lump.capacitance_matrix, fill_value=0).fillna(0)
         self.conductance_matrix = df_G.add(self.lump.conductance_matrix, fill_value=0).fillna(0)
-
+        self.H["incidence_matrix_A"] = self.incidence_matrix_A
+        self.H["incidence_matrix_B"] = self.incidence_matrix_B
+        self.H["resistance_matrix"] = self.resistance_matrix
+        self.H["capacitance_matrix"] = self.capacitance_matrix
+        self.H["conductance_matrix"] = self.conductance_matrix
+        self.H["inductance_matrix"] = self.inductance_matrix
         del df_A
         del df_R
         del df_L
         del df_G
         del df_C
+
+        self.add_device_matrix()
+
+    def add_device_matrix(self):
         if self.devices is not None:
             for device_list in [self.devices.insulators, self.devices.arrestors, self.devices.transformers]:
                 for device in device_list:

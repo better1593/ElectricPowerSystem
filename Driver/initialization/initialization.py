@@ -99,7 +99,8 @@ def initialize_ground(ground_dic):
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
 def initalize_wire_measurement(wire,measurement,tower_name):
-    if 'probe' in wire:
+    if wire['probe']:
+
         measurement[wire['bran']] = [0,wire[ 'probe'],wire['bran'],wire['node1'],wire['node2'],tower_name]
 
 

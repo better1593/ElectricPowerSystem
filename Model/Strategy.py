@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
+from Driver.modeling.tower_modeling import tower_building
+from Driver.initialization.initialization import initial_device,initial_lump
+import json
+import pickle
+from Model import Network
 class Strategy(ABC):
 
     def __init__(self):
@@ -45,7 +50,7 @@ class Linear(Strategy):
                                         index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
 
 class Change_light_pos(Strategy):
-    def apply(self,network,lightning,new_pos,dt):
+    def apply(self,network,lightning,new_pos):
         print("change light position calculation is used")
 
         lightning.channel.hit_pos = new_pos["position"]
@@ -53,20 +58,109 @@ class Change_light_pos(Strategy):
 
 class Change_light_waveform(Strategy):
     def apply(self, network, lightning, new_waveform, pos_dict):
-        print("change light position calculation is used")
+        print("change light waveform calculation is used")
 
-        lightning.channel.hit_pos = new_waveform["position"]
+        lightning.channel.hit_pos = new_waveform
         network.source_calculate(lightning, pos_dict)
 
-class Change_light_waveform(Strategy):
+class Change_light_parameters(Strategy):
     def apply(self, network, lightning, new_parameters, pos_dict):
-        print("change light position calculation is used")
+        print("change light parameters calculation is used")
         for stroke in lightning.strokes:
             stroke.parameters = new_parameters #
             stroke.current_waveform = []
             stroke.calculate()
         network.source_calculate(lightning, pos_dict)
 
+class Change_Arrestor_pos(Strategy):
+    def apply(self, network,name, wire_mapping,node_mapping):
+        print("changing arrestor position calculation")
+        for i,tower in enumerate(network.towers):
+            for j,device in enumerate(tower.devices):
+                for index,arrestor in enumerate(device.arrestors):
+                    if arrestor.name == name:
+                        network.switch_disruptive_effect_models.remove(device.switch_disruptive_effect_models)
+                        network.voltage_controled_switchs.remove(device.voltage_controled_switchs)
+                        network.time_controled_switchs.remove(device.time_controled_switchs)
+                        network.nolinear_resistors.remove(device.nolinear_resistors)
+
+                        arrestor.capacitance_matrix = arrestor.capacitance_matrix.rename(columns=node_mapping,index=node_mapping)
+                        arrestor.inductance_matrix = arrestor.inductance_matrix.rename(columns=wire_mapping,index=wire_mapping)
+                        arrestor.incidence_matrix_A = arrestor.incidence_matrix_A.rename(columns=node_mapping,index=wire_mapping)
+                        arrestor.inductance_matrix_B = arrestor.inductance_matrix_B.rename(columns=node_mapping,index=wire_mapping)
+                        arrestor.resistance_matrix = arrestor.resistance_matrix.rename(columns=wire_mapping,index=wire_mapping)
+                        arrestor.conductance_matrix = arrestor.conductance_matrix.rename(columns=node_mapping,index=node_mapping)
+                        device[index] = arrestor
+                tower.devices[j] = device
+            tower.reset_matrix()
+            gnd = network.ground if network.global_ground == 1 else tower.ground
+            tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
+            network.switch_disruptive_effect_models.extend(device.switch_disruptive_effect_models)
+            network.voltage_controled_switchs.extend(device.voltage_controled_switchs)
+            network.time_controled_switchs.extend(device.time_controled_switchs)
+            network.nolinear_resistors.extend(device.nolinear_resistors)
+
+            network.towers[i] = tower
+            network.combine_parameter_matrix()
+            network.calculate(network.dt)
+
+
+
+class Change_ROD(Strategy):
+    def apply(self, network, lump_dict,name,r,l, dt):
+        print("change ROD calculation is used")
+        for i,tower in enumerate(network.towers):
+            for lump in lump_dict:
+                if lump.name == name:
+                    network.switch_disruptive_effect_models.remove(lump.switch_disruptive_effect_models)
+                    network.voltage_controled_switchs.remove(lump.voltage_controled_switchs)
+                    network.time_controled_switchs.remove(lump.time_controled_switchs)
+                    network.nolinear_resistors.remove(lump.nolinear_resistors)
+
+
+                    lump_dict.value1 = r
+                    lump_dict.value2 = l
+                    lumps,measurement = initial_lump(lump_dict, network.dt, network.T,network.measurement)
+                    tower.lumps = lumps
+
+                    network.switch_disruptive_effect_models.extend(lump.switch_disruptive_effect_models)
+                    network.voltage_controled_switchs.extend(lump.voltage_controled_switchs)
+                    network.time_controled_switchs.extend(lump.time_controled_switchs)
+                    network.nolinear_resistors.extend(lump.nolinear_resistors)
+            network.towers[i] = tower
+            tower.reset_matrix()
+            gnd = network.ground if network.global_ground == 1 else tower.ground
+            tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
+
+            network.combine_parameter_matrix()
+            network.calculate(network.dt)
+
+class Change_ground(Strategy):
+    def apply(self,  load_dict, new_parameter):
+        print("change ground calculation")
+        load_dict['Global']["ground"] = new_parameter  # 修改值
+
+        with open("modified", 'w') as file:
+            json.dump(load_dict, file, indent=4)
+
+        network = Network()
+        network.run(load_dict)
+class Change_SW(Strategy):
+    def apply(self,  load_dict, name,position,bran):
+
+        for index,ohl in enumerate(load_dict['OHL']):
+            if ohl.name == name:
+                if position:
+                    ohl["position"] = position # 修改值
+                if bran:
+                    ohl["bran"] = bran # 修改值
+                load_dict['OHL'][index] = ohl
+
+        with open("modified", 'w') as file:
+            json.dump(load_dict, file, indent=4)
+
+        network = Network()
+        network.run(load_dict)
 class NonLinear(Strategy):
     def apply(self,network,dt):
         print("Nonlinear calculation is used")
@@ -103,12 +197,16 @@ class NonLinear(Strategy):
 
 
 class Change_DE_max(Strategy):
-    def apply(self,network,dt):
-        network.reverse_H()
-        for lump in network.switch_disruptive_effect_models.parameters:
-            lump['DE_max'] = 100
-        network.calculate(dt)
+    def apply(self,network,DE_max):
+        print("Changing DE max calculation is used")
+        network.reset_matrix()
+        for index,lump in enumerate(network.switch_disruptive_effect_models):
+            lump.parameters['DE_max'] = DE_max
+            network.switch_disruptive_effect_models[index] = lump
 
+        network.calculate()
+        with open('output_change_DE.pkl', 'wb') as f:
+            pickle.dump(network.run_measure(), f)
 
 
 
@@ -128,17 +226,20 @@ class Measurement(Strategy):
                 p = [a * b for a, b in zip(current, voltage)] if current and voltage else None
                 E = sum([i * dt for i in p]) if p else None
                 if measurement_type == 1:
-                    results[(key,value[3],value[4])] = {"current":current}
+                    results["current"] = current
                 elif measurement_type == 2:
-                    results[(key,value[3],value[4])] = {"voltage":voltage}
+                    results["voltage"] = voltage
                 elif measurement_type == 3:
-                    results[(key,value[3],value[4])] = {"P":p}
+                    results["P"] = p
                 elif measurement_type == 4:
-                    results[(key,value[3],value[4])] = {"E":E}
+                    results["E"] = E
+                    results["P"] = p
+                    results["voltage"] = voltage
+                    results["current"] = current
                 elif measurement_type == 11:
-                    results[(key,value[3],value[4])] = {"current":current,
-                                                        "voltage":voltage,
-                                                        "E":E,"P":p}
+                    results["E"] = E
+
+                results["index"] = [key,value[3],value[4]]
             elif data_type == 1:
                 lump_name = key
                 # 处理支路名可能是列表的情况
@@ -153,16 +254,19 @@ class Measurement(Strategy):
                     E = sum([i*dt for i in p ]) if p else None
 
                     if measurement_type == 1:
-                        dict_result[bran] = {"current":current}
+                        dict_result["current"] = current
                     elif measurement_type == 2:
-                        dict_result[(n1,n2)] = {"voltage":voltage}
+                        dict_result["voltage"] = voltage
                     elif measurement_type == 3:
-                        dict_result[(bran,n1,n2)] = {"P": p}
+                        dict_result["P"] = p
                     elif measurement_type == 4:
-                        dict_result[(bran,n1,n2)] ={"current":current,"voltage":voltage,"P":p,"E":E}
+                        dict_result["current"] = current
+                        dict_result["voltage"] = voltage
+                        dict_result["P"] = p
+                        dict_result["E"] = E
                     elif measurement_type == 11:
-                        dict_result[(bran,n1,n2)] ={"E":E}
-
+                        dict_result["E"] =E
+                dict_result["index"] = [bran,n1,n2]
                 results[lump_name] = dict_result
         return results
 

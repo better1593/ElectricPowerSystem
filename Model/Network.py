@@ -1,8 +1,10 @@
 import json
+import sys
 
 import numpy as np
 import pandas as pd
 from functools import reduce
+from itertools import chain
 
 from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump, \
     initialize_cable, initialize_ground
@@ -10,7 +12,7 @@ from Driver.modeling.OHL_modeling import OHL_building
 from Driver.modeling.cable_modeling import cable_building
 from Driver.modeling.tower_modeling import tower_building
 from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrent_calculate
-
+from Risk_Evaluate.MC import run_MC
 from Model.Cable import Cable
 from Model.Lightning import Lightning
 from Model.Tower import Tower
@@ -103,6 +105,7 @@ class Network:
         # 2. build dedicated matrix for all elements
         # segment_num = int(3)  # 正常情况下，segment_num由segment_length和线长反算，但matlab中线长参数位于Tower中，在python中如何修改？
         # segment_length = 50  # 预设的参数
+
         for tower in self.towers:
             gnd = self.ground if self.global_ground == 1 else tower.ground
             tower_building(tower, self.f0, self.max_length, gnd, varied_frequency)
@@ -130,12 +133,8 @@ class Network:
     def initialize_source(self, load_dict,dt):
         self.sources =initial_source( load_dict, dt=dt)
 
-    def run_measurement(self,strategy):
-        #lumpname/branname: label,probe,branname,n1,n2,(towername)
-        return strategy.apply(measurement=self.measurement,solution=self.solution)
 
-
-    def source_calculate(self,lightning,load_dict):
+    def source_calculate(self,lightning,area,wire,position):
         nodes = self.capacitance_matrix.columns.tolist()
 
         branches = segment_branch(self.branches)
@@ -153,9 +152,8 @@ class Network:
                                                                stroke_sequence=i, constants=constants)], axis=1,
                               ignore_index=True)
             I_out = pd.concat(
-                [I_out, LightningCurrent_calculate(load_dict["area"], load_dict["wire"], load_dict["position"],
-                                                   self, nodes, lightning, stroke_sequence=i)], axis=1,
-                ignore_index=True)
+                [I_out, LightningCurrent_calculate(area,wire,position,self,nodes, lightning, stroke_sequence=i)],
+                axis=1,ignore_index=True)
         # Source_Matrix = pd.concat([I_out, U_out], axis=0)
         lumps = [tower.lump for tower in self.towers]
         devices = [tower.devices for tower in self.towers]
@@ -180,8 +178,6 @@ class Network:
             self.inductance_matrix = self.inductance_matrix.add(tower.inductance_matrix, fill_value=0).fillna(0)
             self.capacitance_matrix = self.capacitance_matrix.add(tower.capacitance_matrix, fill_value=0).fillna(0)
             self.conductance_matrix = self.conductance_matrix.add(tower.conductance_matrix, fill_value=0).fillna(0)
-           # self.voltage_source_matrix.add(tower.voltage_source_matrix, fill_value=0).fillna(0)
-           # self.current_source_matrix.add(tower.current_source_matrix, fill_value=0).fillna(0)
 
         for model_list in [self.OHLs, self.cables]:
             for model in model_list:
@@ -191,8 +187,10 @@ class Network:
                 self.inductance_matrix = self.inductance_matrix.add(model.inductance_matrix, fill_value=0).fillna(0)
                 self.capacitance_matrix = self.capacitance_matrix.add(model.capacitance_matrix, fill_value=0).fillna(0)
                 self.conductance_matrix = self.conductance_matrix.add(model.conductance_matrix, fill_value=0).fillna(0)
-             #   self.voltage_source_matrix.add(model.voltage_source_matrix, fill_value=0).fillna(0)
-             #   self.current_source_matrix.add(model.current_source_matrix, fill_value=0).fillna(0)
+        self.build_H()
+
+
+    def build_H(self):
         self.H["incidence_matrix_A"] = self.incidence_matrix_A
         self.H["incidence_matrix_B"] = self.incidence_matrix_B
         self.H["resistance_matrix"] = self.resistance_matrix
@@ -200,6 +198,13 @@ class Network:
         self.H["capacitance_matrix"] = self.capacitance_matrix
         self.H["conductance_matrix"] = self.conductance_matrix
 
+    def reset_matrix(self):
+       self.incidence_matrix_A = self.H["incidence_matrix_A"]
+       self.incidence_matrix_B  = self.H["incidence_matrix_B"]
+       self.resistance_matrix = self.H["resistance_matrix"]
+       self.inductance_matrix = self.H["inductance_matrix"]
+       self.capacitance_matrix =  self.H["capacitance_matrix"]
+       self.conductance_matrix = self.H["conductance_matrix"]
 
 
     #更新H矩阵和判断绝缘子是否闪络
@@ -221,25 +226,31 @@ class Network:
             self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
 
     #执行不同的算法
-    def calculate(self,dt):
+    def calculate(self):
         if not self.switch_disruptive_effect_models and not self.voltage_controled_switchs and not self.time_controled_switchs and not self.nolinear_resistors:
             strategy = Strategy.Linear()
         else:
             strategy = Strategy.NonLinear()
-        strategy.apply(self,dt)
+        strategy.apply(self,self.dt)
+        self.reverse_lump() #每次计算后要恢复元器件叠加的值 on_off,DE
 
+    def run_measure(self):
+        # lumpname/branname: label(bran0/lump1),probe,branname,n1,n2,(towername)
         if self.measurement:
-            self.measurement = Strategy.Measurement().apply(measurement=self.measurement, solution=self.solution,dt=dt)
+            return Strategy.Measurement().apply(measurement=self.measurement, solution=self.solution,dt=self.dt)
 
+    def run_MC(self,load_dict):
+        if load_dict["MC"]:
+            print("running Monte Carlo to generate lightnings")
+            run_MC(self,load_dict)
+    def reverse_lump(self):
+        for lump in chain(self.switch_disruptive_effect_models, self.voltage_controled_switchs,
+                          self.time_controled_switchs+self.nolinear_resistors):
+            lump.on_off = 1
+            lump.DE = 0
+        print("init lump")
 
-    def run(self,file_name,*basestrategy):
-
-        json_file_path = "Data/input/" + file_name + ".json"
-        # 0. read json file
-        with open(json_file_path, 'r',encoding="utf-8") as j:
-            load_dict = json.load(j)
-
-
+    def run(self,load_dict,*basestrategy):
         # 0. 手动预设值
         frq = np.concatenate([
             np.arange(1, 91, 10),
@@ -262,6 +273,8 @@ class Network:
         # 1. 初始化电网，根据电网信息计算源
         self.initialize_network(load_dict, frq,VF,self.dt,self.T)
         self.Nt = int(np.ceil(self.T/self.dt))
+
+
         # 2. 保存支路节点信息
         self.calculate_branches(self.max_length)
 
@@ -269,12 +282,46 @@ class Network:
         if load_dict["Source"]["Lightning"]:
             light = load_dict["Source"]["Lightning"]
             lightning = initial_source(light, dt=self.dt)
-            self.sources = self.source_calculate(lightning,light)
+            self.sources = self.source_calculate(lightning,
+                                                 light["area"], light["wire"], light["position"])
+
+        self.calculate()
 
 
+    def sensitive_analysis(self,load_dict):
+        if load_dict["Sensitivity_analysis"]["Stroke"]["position"]:
+            Strategy.Change_light_pos().apply(self,load_dict["Source"]["Lightning"],
+                                            load_dict["Sensitivity_analysis"]["Stroke"]["position"])
+
+        if load_dict["Sensitivity_analysis"]["Stroke"]["waveform"]:
+            Strategy.Change_light_waveform().apply(self,load_dict["Source"]["Lightning"],
+                                                   load_dict["Sensitivity_analysis"]["Stroke"]["waveform"],
+                                                   load_dict)
+
+        if load_dict["Sensitivity_analysis"]["Stroke"]["paramenters"]:
+            Strategy.Change_light_waveform().apply(self, load_dict["Source"]["Lightning"],
+                                                   load_dict["Sensitivity_analysis"]["Stroke"]["paramenters"],
+                                                   load_dict)
+
+        if load_dict["Sensitivity_analysis"]["Arrester"]["name"]:
+            name = load_dict["Sensitivity_analysis"]["Arrester"]["name"]
+            node_map = load_dict["Sensitivity_analysis"]["Arrester"]["node_map"]
+            wire_map = load_dict["Sensitivity_analysis"]["Arrester"]["wire_map"]
+            Strategy.Change_Arrestor_pos().apply(self, name,node_map,wire_map)
+
+        if load_dict["Sensitivity_analysis"]["SW"]["name"]:
+            name = load_dict["Sensitivity_analysis"]["SW"]["name"]
+            position = load_dict["Sensitivity_analysis"]["SW"]["position"]
+            bran = load_dict["Sensitivity_analysis"]["SW"]["bran"]
+
+            Strategy.Change_SW().apply(load_dict,name,position,bran)
+
+        if load_dict["Sensitivity_analysis"]["DE"]:
+
+            Strategy.Change_DE_max().apply(self,load_dict["Sensitivity_analysis"]["DE"])
 
 
-        self.calculate(self.dt)
+       # self.calculate(self.dt)
 
         print("you are measuring")
 

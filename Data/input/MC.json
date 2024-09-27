@@ -33,7 +33,7 @@
         {
           "type": "air",
           "bran": "Y01_Tower_1",
-          "probe": null,
+          "probe": 1,
           "node1": "X01",
           "node2": "X09",
           "pos_1": [
@@ -417,7 +417,7 @@
             {
               "Type": "swh",
               "name": "swh_Tower_1_1",
-              "probe": 2,
+              "probe": null,
               "bran_name": "Y13_Tower_1",
               "node1": "X05",
               "node2": "X08",
@@ -433,7 +433,7 @@
             {
               "Type": "swh",
               "name": "swh_Tower_1_2",
-              "probe": 2,
+              "probe": null,
               "bran_name": "Y14_Tower_1",
               "node1": "X06",
               "node2": "X10",
@@ -449,7 +449,7 @@
             {
               "Type": "swh",
               "name": "swh_Tower_1_3",
-              "probe": 2,
+              "probe": null,
               "bran_name": "Y15_Tower_1",
               "node1": "X07",
               "node2": "X11",
@@ -929,7 +929,7 @@
             {
               "Type": "swh",
               "name": "swh_Tower_2_1",
-              "probe": 2,
+              "probe": 3,
               "bran_name": "Y13_Tower_2",
               "node1": "X21",
               "node2": "X24",
@@ -1201,29 +1201,6 @@
       }
     }
   ],
-  "Source": {
-    "Lightning": {
-      "type": "Direct",
-        "area": "tower_1",
-        "wire": "Y02",
-        "position": [
-          10,
-          10,
-          0
-         ],
-        "model": "MTLE",
-        "stroke_num": 1,
-        "Stroke": [
-          {
-            "type": "Heidler",
-            "duration": 2e-5,
-            "parameters": null,
-            "parameter_set": "2.6/50us"
-          }
-        ]
-    }
-  }
-,
   "Global": {
     "delta_time": 1e-8,
     "time": 2e-5,
@@ -1238,34 +1215,6 @@
       "ionisation_intensity": "",
       "ionisation_model": ""
     }
-  },
-
-  "Sensitivity_analysis":{
-    "Stroke": {
-      "position": [],
-      "waveform": [],
-      "paramenters": []
-    },
-    "Soil": [],
-    "Arrester": {
-      "name": null,
-      "position": [],
-      "node_map": {},
-      "wire_map": {}
-    },
-    "SW": {
-      "name": null,
-      "position": [],
-      "bran": [],
-      "ground": []
-    },
-    "ROD": {
-      "lump": null
-
-    },
-    "DE": null,
-    "ground": null
-
   },
   "MC": {
     "MC_lgtn": {
@@ -1304,6 +1253,4 @@
     }
 
   }
-
-
 }
