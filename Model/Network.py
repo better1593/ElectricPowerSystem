@@ -290,20 +290,41 @@ class Network:
             if light["area"].split("_")[0] == "OHL":
                 for ohl in load_dict["OHL"]:
                     if ohl["name"]==light["area"]:
-                        wire = ohl["Wire"]
-                        cir_id = wire['cir_id']
-                        if wire['type'] == 'SW':
-                            bran = 'Y' + str(cir_id) + 'S'
-                            self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
-                        elif wire['type'] == 'CIRO':
-                            bran = 'Y' + str(cir_id) + wire['phase']
-                            self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+                        wires = ohl["Wire"]
+                        for wire in wires:
+                            cir_id = wire['cir_id']
+                            phase_id = wire['phase_id']
+                            if cir_id == light["cir_id"] and phase_id == light["phase_id"]:
+                                if wire['type'] == 'SW':
+                                    bran = 'Y' + str(cir_id) + 'S'
+                                    self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+                                elif wire['type'] == 'CIRO':
+                                    bran = 'Y' + str(cir_id) + wire['phase']
+                                    self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
             if light["area"].split("_")[0] == "tower":
                 self.sources = self.source_calculate(self.lightning,
                                                  light["area"], light["wire"], light["position"])
 
         self.calculate()
 
+    def find_wire(self,load_dict,light,area,cir,phase):
+        if area.split("_")[0] == "OHL":
+            for ohl in load_dict["OHL"]:
+                if ohl["name"]==light["area"]:
+                    wires = ohl["Wire"]
+                    for wire in wires:
+                        cir_id = wire['cir_id']
+                        phase_id = wire['phase_id']
+                        if cir_id == light["cir_id"] and phase_id == light["phase_id"]:
+                            if wire['type'] == 'SW':
+                                bran = 'Y' + str(cir_id) + 'S'
+                                self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+                            elif wire['type'] == 'CIRO':
+                                bran = 'Y' + str(cir_id) + wire['phase']
+                                self.sources = self.source_calculate(self.lightning, light["area"], bran, light["position"])
+        if light["area"].split("_")[0] == "tower":
+            self.sources = self.source_calculate(self.lightning,
+                                             light["area"], light["wire"], light["position"])
 
     def sensitive_analysis(self,load_dict):
 

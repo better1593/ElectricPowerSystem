@@ -1206,6 +1206,8 @@
       "type": "Direct",
         "area": "tower_1",
         "wire": "Y02",
+        "cir_id": null,
+        "phase_id": null,
         "position": [
           10,
           10,
