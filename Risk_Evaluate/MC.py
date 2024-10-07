@@ -9,6 +9,9 @@ from Risk_Evaluate.current_waveform_generator import *
 from Utils.Math import distance
 import numpy as np
 import json
+import pandas as pd
+from Model.Lightning import Stroke,Lightning,Channel
+import math
 
 # network = pickle.load(open('../Data/output/network.pkl', 'rb'))
 # print(network.dt)
@@ -123,17 +126,64 @@ def run_MC(network,load_dict):
     DINDs = np.array([1 if x == 'Direct' else 0 for x in DIND])
     DIND2 = DINDs[resultcur['siteone']]
     flash_stroke = np.hstack((flash_stroke, DIND2.reshape(-1, 1)))
+    df27 = pd.DataFrame(flash_stroke, columns=['flash', 'stroke', 'Direct1_Indirect2'])
+    index = 0
+    for i in df27.groupby("flash"):
+        stroke_list = []
+        for j in range(i[1].shape[0]):
+            stroke_type = "Heidler"
+            duration = 1e-5
+            dt = 1e-8
+            stroke = Stroke(stroke_type, duration=duration, dt=dt, is_calculated=True, parameter_set=None,
+                            parameters=parameterst[index].tolist()[2:])
+            stroke.calculate()
+            index += 1
+            stroke_list.append(stroke)
+        flash_type = stroke_result[0][index-1]
+        area = int(stroke_result[1][index-1])
+        aid = stroke_result[2][index-1]
+        area_id = 0 if math.isnan(stroke_result[2][index-1]) else str(int(stroke_result[2][index-1]))
+        cir_id = 0 if math.isnan(float(stroke_result[3][index-1])) else int(float(stroke_result[3][index-1]))
+        phase_id = 0 if math.isnan(float(stroke_result[4][index-1])) else int(float(stroke_result[4][index-1]))
+        position_xy = stroke_result[8][index-1]
+        position = None
+        wire = None
+        if area == 0:
+            area = "Ground"
+            position = position_xy.append(0)
+        elif area ==1:
+            area = "tower_"+area_id
+            for tower in load_dict["Tower"]:
+                if tower["Info"]["name"] ==area:
+                    z = tower["Info"]["pole_height"]
+                    position = position_xy.append(z)
+                    for w in tower["Wire"]:
+                        if w["pos_1"][2]==z or w["pos_2"][2]==z:
+                            wire = w["bran"]
+                    if wire is None:
+                        wire = tower["Wire"][0]
 
-    stroke_list = []
-    stroke_type = "Heidler"
-    duration = 1e-5
-    for stroke_dict in load_dict['Stroke']:
-        parameters,parameter_set= stroke_dict['parameters'],stroke_dict['parameter_set']
-        stroke = Stroke(stroke_type, duration=duration, dt=network.dt, is_calculated=True, parameter_set=parameter_set, parameters=None)
-        stroke.calculate()
-        stroke_list.append(stroke)
-    lightning =Lightning(id=1, type= load_dict['type'], strokes=stroke_list, channel=Channel(load_dict['position']))
-    network.source_calculate(lightning,load_dict)
+        elif area ==2:
+            area = "OHL_"+area_id
+            for ohl in load_dict["OHL"]:
+                if ohl["Info"]["name"] ==area:
+                    for w in ohl["Wire"]:
+                        cir_id_ohl = w['cir_id']
+                        phase_id_ohl = w['phase_id']
+                        if cir_id_ohl == cir_id and phase_id_ohl == phase_id:
+                            z = w["node1_pos"][2]
+                            position = position_xy.append(z)
+                            if w['type'] == 'SW':
+                                wire = 'Y' + str(cir_id) + 'S'
+                            elif w['type'] == 'CIRO':
+                                wire = 'Y' + str(cir_id) + w['phase']
+
+
+
+        lightning =Lightning(id=1, type=flash_type, strokes=stroke_list, channel=Channel(position_xy))
+        network.sources = network.source_calculate(lightning,area,wire,position_xy)
+        #network.calculate()
+        print("MC simulate calculation")
 
 
 

@@ -22,11 +22,10 @@ if __name__ == '__main__':
 
 
 
-    network.sensitive_analysis(load_dict)
+    #network.sensitive_analysis(load_dict)
 
 
-    print('end')
-    #network.run_MC(load_dict)
+    network.run_MC(load_dict)
 
    # pickle.dump(network, open("/Data/output/network.pkl", 'wb'))  # 序列化
 

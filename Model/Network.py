@@ -389,6 +389,5 @@ class Network:
 
        # self.calculate(self.dt)
 
-        print("you are measuring")
 
 
