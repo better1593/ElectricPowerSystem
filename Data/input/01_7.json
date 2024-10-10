@@ -1145,8 +1145,7 @@
       }
     }
   ],
-      "Source":
-    {
+  "Source": {
       "area": "tower_1",
       "wire": "Y01",
       "position": [1,0,0]
