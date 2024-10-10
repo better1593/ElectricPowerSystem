@@ -6,6 +6,7 @@ from Driver.initialization.initialization import initial_device,initial_lump,ini
 import json
 import pickle
 from functools import reduce
+import copy
 
 from Model import Network
 class Strategy(ABC):
@@ -22,34 +23,8 @@ class Strategy(ABC):
         ima = np.array(netwotk.incidence_matrix_A)  # 线点
         imb = np.array(netwotk.incidence_matrix_B.T)  # 点线
 
-class Linear(Strategy):
-    def apply(self,network,dt):
-        print("linear calculation is used")
-        C = np.array(network.capacitance_matrix)  # 点点
-        G = np.array(network.conductance_matrix)
-        L = np.array(network.inductance_matrix)  # 线线
-        R = np.array(network.resistance_matrix)
-        ima = np.array(network.incidence_matrix_A)  # 线点
-        imb = np.array(network.incidence_matrix_B.T)  # 点线
-        source = np.array(network.sources)
-        nodes = len(network.capacitance_matrix.columns.tolist())
-        branches = len(network.inductance_matrix.columns.tolist())
-        time_length = len(network.sources.columns.tolist())
 
-        out = np.zeros((branches + nodes, time_length))
-        branches, nodes = ima.shape
-        for i in range(time_length - 1):
-            Vnode = out[:nodes, i].reshape((-1, 1))
-            Ibran = out[nodes:, i].reshape((-1, 1))
-            Isource = source[:, i + 1].reshape((-1, 1))
-            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
-            inv_LEFT = np.linalg.inv(LEFT)
-            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
-            # temp_result = inv_LEFT.dot(RIGHT)
-            temp_result = inv_LEFT.dot(Isource + RIGHT)
-            out[:, i + 1] = np.copy(temp_result)[:, 0]
-        network.solution = pd.DataFrame(out,
-                                        index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+
 
 class Change_light_pos(Strategy):
     def apply(self,network,lightning,area,wire,new_pos):
@@ -59,20 +34,21 @@ class Change_light_pos(Strategy):
         cir_id = wire['cir_id']
         if wire['type'] == 'SW':
             bran = 'Y' + str(cir_id) + 'S'
-            network.source_calculate(lightning, area, bran, new_pos)
+            network.sources = network.source_calculate(lightning, area, bran, new_pos)
         elif wire['type'] == 'CIRO':
             bran = 'Y' + str(cir_id) + wire['phase']
             network.sources = network.source_calculate(lightning,area,bran, new_pos)
         else:
             network.sources = network.source_calculate(lightning, area, wire["name"], new_pos)
-        network.calculate()
+        network.calculate(network.dt,network.H,network.sources)
 
 class Change_light_waveform(Strategy):
     def apply(self, network, lightning, new_waveform, pos_dict):
         print("change light waveform calculation is used")
 
         lightning.channel.hit_pos = new_waveform
-        network.source_calculate(lightning, pos_dict)
+        network.sources = network.source_calculate(lightning, pos_dict)
+        network.calculate(network.dt, network.H, network.sources)
 
 class Change_light_parameters(Strategy):
     def apply(self, network, lightning, new_parameters, pos_dict):
@@ -81,41 +57,27 @@ class Change_light_parameters(Strategy):
             stroke.parameters = new_parameters #
             stroke.current_waveform = []
             stroke.calculate()
-        network.source_calculate(lightning, pos_dict)
-
+        network.sources = network.source_calculate(lightning, pos_dict)
+        network.calculate(network.dt, network.H, network.sources)
 class Change_Arrestor_pos(Strategy):
     def apply(self, network,name, wire_mapping,node_mapping):
         print("changing arrestor position calculation")
-        for i,tower in enumerate(network.towers):
-            for j,device in enumerate(tower.devices):
-                for index,arrestor in enumerate(device.arrestors):
+        for tower in network.towers:
+            for device in tower.devices:
+                for arrestor in device.arrestors:
                     if arrestor.name == name:
-                        network.switch_disruptive_effect_models.remove(device.switch_disruptive_effect_models)
-                        network.voltage_controled_switchs.remove(device.voltage_controled_switchs)
-                        network.time_controled_switchs.remove(device.time_controled_switchs)
-                        network.nolinear_resistors.remove(device.nolinear_resistors)
-
                         arrestor.capacitance_matrix = arrestor.capacitance_matrix.rename(columns=node_mapping,index=node_mapping)
                         arrestor.inductance_matrix = arrestor.inductance_matrix.rename(columns=wire_mapping,index=wire_mapping)
                         arrestor.incidence_matrix_A = arrestor.incidence_matrix_A.rename(columns=node_mapping,index=wire_mapping)
                         arrestor.inductance_matrix_B = arrestor.inductance_matrix_B.rename(columns=node_mapping,index=wire_mapping)
                         arrestor.resistance_matrix = arrestor.resistance_matrix.rename(columns=wire_mapping,index=wire_mapping)
                         arrestor.conductance_matrix = arrestor.conductance_matrix.rename(columns=node_mapping,index=node_mapping)
-                        device[index] = arrestor
-                tower.devices[j] = device
             tower.reset_matrix()
             gnd = network.ground if network.global_ground == 1 else tower.ground
             tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
-            network.switch_disruptive_effect_models.extend(device.switch_disruptive_effect_models)
-            network.voltage_controled_switchs.extend(device.voltage_controled_switchs)
-            network.time_controled_switchs.extend(device.time_controled_switchs)
-            network.nolinear_resistors.extend(device.nolinear_resistors)
 
-            network.towers[i] = tower
             network.combine_parameter_matrix()
-            network.calculate(network.dt)
-
-
+            network.calculate(network.dt,network.H,network.sources)
 
 class Change_ROD(Strategy):
     def apply(self, network, load_dict,lumpname,r,l):
@@ -128,7 +90,7 @@ class Change_ROD(Strategy):
         network.towers = []
         network.initial_tower(load_dict)
         network.combine_parameter_matrix()
-        network.calculate()
+        network.calculate(network.dt,network.H,network.sources)
         pd.DataFrame(network.run_measure()).to_csv("ROD_modified.csv")
 
 class Change_ground(Strategy):
@@ -162,20 +124,20 @@ class Change_SW(Strategy):
 
 
 class NonLinear(Strategy):
-    def apply(self,network,dt):
+    def apply(self,dt,H,sources):
         print("Nonlinear calculation is used")
-        branches, nodes = network.incidence_matrix_A.shape
-        source = np.array(network.sources)
-        time_length = len(network.sources.columns.tolist())
+        branches, nodes = H["incidence_matrix_A"].shape
+        source = np.array(sources)
+        time_length = len(sources.columns.tolist())
         out = np.zeros((branches + nodes, time_length))
         # source = np.array(sources)
         for i in range(time_length - 1):
-            C = network.capacitance_matrix.to_numpy()  # 点点
-            G = network.conductance_matrix.to_numpy()
-            L = network.inductance_matrix.to_numpy()  # 线线
-            R = network.resistance_matrix.to_numpy()
-            ima = network.incidence_matrix_A.to_numpy()  # 线点
-            imb = network.incidence_matrix_B.T.to_numpy()  # 点线
+            C = H["capacitance_matrix"].to_numpy()  # 点点
+            G = H["conductance_matrix"].to_numpy()
+            L = H["inductance_matrix"].to_numpy()  # 线线
+            R = H["resistance_matrix"].to_numpy()
+            ima = H["incidence_matrix_A"].to_numpy()  # 线点
+            imb = H["incidence_matrix_B"].T.to_numpy()  # 点线
             Vnode = out[:nodes, i].reshape((-1, 1))
             Ibran = out[nodes:, i].reshape((-1, 1))
             Isource = source[:, i + 1].reshape((-1, 1))
@@ -187,25 +149,71 @@ class NonLinear(Strategy):
             # temp_result = inv_LEFT.dot(RIGHT)
             out[:, i + 1] = np.copy(temp_result)[:, 0]
             temp_result = pd.DataFrame(temp_result,
-                                       index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+                                       index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
 
             t = dt * (i + 1)
-            network.update_H(temp_result, t)
+            self.update_H(temp_result, t,H,dt)
 
-        network.solution = pd.DataFrame(out,
-                                        index=network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist())
+        solution = pd.DataFrame(out,
+                                        index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
+        return solution
+    def update_H(self, current_result, time,H,dt):
+        for switch_v_list in [H["switch_disruptive_effect_models"], H["voltage_controled_switchs"]]:
+            for switch_v in switch_v_list:
+                v1 = current_result.loc[switch_v.node1[0], 0] if switch_v.node1[0] != 'ref' else 0
+                v2 = current_result.loc[switch_v.node2[0], 0] if switch_v.node2[0] != 'ref' else 0
+                resistance = switch_v.update_parameter(abs(v1-v2), dt)
+                H["resistance_matrix"].loc[switch_v.bran[0], switch_v.bran[0]] = resistance
 
+        for switch_t in H["time_controled_switchs"]:
+            resistance = switch_t.update_parameter(time)
+            H["resistance_matrix"].loc[switch_t.bran[0], switch_t.bran[0]] = resistance
+
+        for nolinear_resistor in H["nolinear_resistors"]:
+            component_current = abs(current_result.loc[nolinear_resistor.bran[0], 0])
+            resistance = nolinear_resistor.update_parameter(component_current)
+            H["resistance_matrix"].loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
+
+class Linear(Strategy):
+    def apply(self,dt,H,sources):
+        print("linear calculation is used")
+        C = np.array(H["capacitance_matrix"])  # 点点
+        G = np.array(H["conductance_matrix"])
+        L = np.array(H["inductance_matrix"])  # 线线
+        R = np.array(H["resistance_matrix"])
+        ima = np.array(H["incidence_matrix_A"])  # 线点
+        imb = np.array(H["incidence_matrix_B"].T)  # 点线
+        source = np.array(sources)
+        nodes = len(H["capacitance_matrix"].columns.tolist())
+        branches = len(H["inductance_matrix"].columns.tolist())
+        time_length = len(sources.columns.tolist())
+
+        out = np.zeros((branches + nodes, time_length))
+        branches, nodes = ima.shape
+        for i in range(time_length - 1):
+            Vnode = out[:nodes, i].reshape((-1, 1))
+            Ibran = out[nodes:, i].reshape((-1, 1))
+            Isource = source[:, i + 1].reshape((-1, 1))
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
+            inv_LEFT = np.linalg.inv(LEFT)
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
+            # temp_result = inv_LEFT.dot(RIGHT)
+            temp_result = inv_LEFT.dot(Isource + RIGHT)
+            out[:, i + 1] = np.copy(temp_result)[:, 0]
+        solution = pd.DataFrame(out,
+                                        index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
+        return solution
 
 class Change_DE_max(Strategy):
     def apply(self,network,DE_max):
         print("Changing DE max calculation is used")
-        network.reset_matrix()
         for index,lump in enumerate(network.switch_disruptive_effect_models):
             lump.parameters['DE_max'] = DE_max
-            network.switch_disruptive_effect_models[index] = lump
+            switch_disruptive_copy = copy.deepcopy(network.switch_disruptive_effect_models)
+            switch_disruptive_copy[index] = lump
+        network.H["switch_disruptive_effect_models"] = switch_disruptive_copy
 
-        network.calculate()
-        pd.DataFrame(network.run_measure()).to_csv("DE_modified.csv")
+
 
 
 

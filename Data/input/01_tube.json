@@ -1387,13 +1387,28 @@
     }
   ],
   "Source": {
-    "area": "tower_1",
-    "wire": "Y02",
-    "position": [
-      0,
-      -0.4,
-      9.8
-    ]
+    "Lightning": {
+      "type": "Indirect",
+        "area": "tower_1",
+        "wire": "Y02",
+        "cir_id": null,
+        "phase_id": null,
+        "position": [
+          10,
+          10,
+          0
+         ],
+        "model": "MTLE",
+        "stroke_num": 1,
+        "Stroke": [
+          {
+            "type": "Heidler",
+            "duration": 2e-5,
+            "parameters": null,
+            "parameter_set": "2.6/50us"
+          }
+        ]
+    }
   },
   "Global": {
     "delta_time": 1e-8,

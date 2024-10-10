@@ -17,7 +17,7 @@ if __name__ == '__main__':
     varied_frequency = np.arange(0, 37, 9)
     network = Network()
     change = Strategy.Change_DE_max()
-    network.run(load_dict,change)
+    #network.run(load_dict,change)
     pd.DataFrame(network.run_measure()).to_csv("ROD.csv")
 
 
@@ -27,9 +27,9 @@ if __name__ == '__main__':
 
     network.run_MC(load_dict)
 
-   # pickle.dump(network, open("/Data/output/network.pkl", 'wb'))  # 序列化
+#    pickle.dump(network, open("network.pkl", 'wb'))  # 序列化
 
-   # print(network.solution)
+    print(network.solution)
     #print(network.measurement)
 
 

@@ -36,21 +36,22 @@ def LightningCurrent_calculate(p1, p2, position, network, node_index, lightning,
         area = p1.split("_")[0]
         # 1. 找到用户指定点所在的wire
         selected_wire = None
+        nodes = set()
         if area == "tower":
             selected_tower = [tower for tower in network.towers if tower.info.name == p1]
             selected_wire = [wire for wire in list(selected_tower[0].wires.get_all_wires().values()) if
-                             wire.name.split("_")[0] == p2]
+                             wire.name.split("_")[0] == p2.split("_")[0]]
         elif area == "OHL":
             selected_ohl = [ohl for ohl in network.OHLs if ohl.name == p1]
-            selected_wire = [wire for wire in list(selected_ohl[0].wires.get_all_wires().values()) if
-                             wire.name.split("_")[0] == p2]
+            all_node = [wire for wire in list(selected_ohl[0].wires.get_all_nodes())]
+            nodes = set(all_node)
             print("end")
         elif area == "cable":
             selected_cable = [cable for cable in network.cables if cable.name == p1]
             selected_wire = [wire for wire in list(selected_cable[0].wires.get_all_wires().values()) if
                              wire.name.split("_")[0] == p2]
         # 2. 找到用户指定点距离该wire上最近的node
-        nodes = set()
+
         for wire in selected_wire:
             nodes.add(wire.start_node)
             nodes.add(wire.end_node)
@@ -140,12 +141,12 @@ def ElectricField_calculate(pt_start, pt_end, stroke: Stroke, channel, ep0, vc):
 
     # 电流时间序列
     i_sr = stroke.current_waveform
-    i_sr = i_sr.reshape(1, -1)
+    i_sr = i_sr.reshape(1, -1) if isinstance(i_sr, pd.DataFrame) else np.array([i_sr])
 
-    # 时刻的序列
+    # 时刻的序列_
     # t_sr = np.arange(1, stroke.Nt + 1) * stroke.dt * 1e6
     t_sr = stroke.t_us * 1e6
-    t_sr = t_sr.reshape(1, -1)
+    t_sr = t_sr.reshape(1, -1) if isinstance(t_sr, pd.DataFrame) else np.array([t_sr])
 
     # 雷电通道每段的中点z坐标和镜像通道的z坐标
     z_channel = (np.arange(1, channel.N_channel_segment + 1) - 0.5) * channel.dh
@@ -155,7 +156,7 @@ def ElectricField_calculate(pt_start, pt_end, stroke: Stroke, channel, ep0, vc):
     i_sr_int = np.cumsum(i_sr) * stroke.dt
     i_sr_int = i_sr_int.reshape(1, -1)
     i_sr_div = np.zeros_like(i_sr)
-    i_sr_div[0, 1:] = (np.diff(i_sr) / stroke.dt).reshape(1, -1)
+    i_sr_div[0, 1:] = (np.diff(i_sr) / stroke.dt).reshape(1, -1) if isinstance(i_sr, pd.DataFrame) else np.array(np.diff(i_sr) / stroke.dt).reshape(1,-1)
     i_sr_div[0, 0] = i_sr[0, 0] / stroke.dt
 
     Ez_air, Er_air = calculate_electric_field_down_r_and_z(pt_start, pt_end, stroke, channel, z_channel, i_sr, t_sr, i_sr_int, i_sr_div, ep0, vc, air_or_img =0)

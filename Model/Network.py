@@ -1,11 +1,12 @@
 import json
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 import pandas as pd
 from functools import reduce
 from itertools import chain
-
+import copy
 from Driver.initialization.initialization import initialize_OHL, initialize_tower, initial_source, initial_lump, \
     initialize_cable, initialize_ground
 from Driver.modeling.OHL_modeling import OHL_building
@@ -20,6 +21,8 @@ from Model.Wires import OHLWire
 from Utils.Math import distance, segment_branch
 import Model.Strategy as Strategy
 from Model.Contant import Constant
+from Model.Lightning import Stroke,Lightning,Channel
+import math
 
 class Network:
     def __init__(self, **kwargs):
@@ -106,6 +109,7 @@ class Network:
                     self.voltage_controled_switchs.extend(device.voltage_controled_switchs)
                     self.time_controled_switchs.extend(device.time_controled_switchs)
                     self.nolinear_resistors.extend(device.nolinear_resistors)
+
     # initialize internal network elements
     def initialize_network(self, load_dict, varied_frequency,VF,dt, T):
 
@@ -196,12 +200,17 @@ class Network:
 
 
     def build_H(self):
-        self.H["incidence_matrix_A"] = self.incidence_matrix_A
-        self.H["incidence_matrix_B"] = self.incidence_matrix_B
-        self.H["resistance_matrix"] = self.resistance_matrix
-        self.H["inductance_matrix"] = self.inductance_matrix
-        self.H["capacitance_matrix"] = self.capacitance_matrix
-        self.H["conductance_matrix"] = self.conductance_matrix
+        self.H["incidence_matrix_A"] = copy.deepcopy(self.incidence_matrix_A)
+        self.H["incidence_matrix_B"] = copy.deepcopy(self.incidence_matrix_B)
+        self.H["resistance_matrix"] = copy.deepcopy(self.resistance_matrix)
+        self.H["inductance_matrix"] = copy.deepcopy(self.inductance_matrix)
+        self.H["capacitance_matrix"] = copy.deepcopy(self.capacitance_matrix)
+        self.H["conductance_matrix"] = copy.deepcopy(self.conductance_matrix)
+        self.H["switch_disruptive_effect_models"] = copy.deepcopy(self.switch_disruptive_effect_models)
+        self.H["voltage_controled_switchs"] = copy.deepcopy(self.voltage_controled_switchs)
+        self.H["time_controled_switchs"] = copy.deepcopy(self.time_controled_switchs)
+        self.H["nolinear_resistors"] = copy.deepcopy(self.nolinear_resistors)
+        return self.H
 
     def reset_matrix(self):
        self.incidence_matrix_A = self.H["incidence_matrix_A"]
@@ -211,33 +220,13 @@ class Network:
        self.capacitance_matrix =  self.H["capacitance_matrix"]
        self.conductance_matrix = self.H["conductance_matrix"]
 
-
-    #更新H矩阵和判断绝缘子是否闪络
-    def update_H(self, current_result, time):
-        for switch_v_list in [self.switch_disruptive_effect_models, self.voltage_controled_switchs]:
-            for switch_v in switch_v_list:
-                v1 = current_result.loc[switch_v.node1[0], 0] if switch_v.node1[0] != 'ref' else 0
-                v2 = current_result.loc[switch_v.node2[0], 0] if switch_v.node2[0] != 'ref' else 0
-                resistance = switch_v.update_parameter(abs(v1-v2), self.dt)
-                self.resistance_matrix.loc[switch_v.bran[0], switch_v.bran[0]] = resistance
-
-        for switch_t in self.time_controled_switchs:
-            resistance = switch_t.update_parameter(time)
-            self.resistance_matrix.loc[switch_t.bran[0], switch_t.bran[0]] = resistance
-
-        for nolinear_resistor in self.nolinear_resistors:
-            component_current = abs(current_result.loc[nolinear_resistor.bran[0], 0])
-            resistance = nolinear_resistor.update_parameter(component_current)
-            self.resistance_matrix.loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
-
     #执行不同的算法
-    def calculate(self):
+    def calculate(self,dt,H,sources):
         if not self.switch_disruptive_effect_models and not self.voltage_controled_switchs and not self.time_controled_switchs and not self.nolinear_resistors:
             strategy = Strategy.Linear()
         else:
             strategy = Strategy.NonLinear()
-        strategy.apply(self,self.dt)
-        self.reverse_lump() #每次计算后要恢复元器件叠加的值 on_off,DE
+        return strategy.apply(dt,H,sources)
 
     def run_measure(self):
         # lumpname/branname: label(bran0/lump1),probe,branname,n1,n2,(towername)
@@ -245,15 +234,108 @@ class Network:
             return Strategy.Measurement().apply(measurement=self.measurement, solution=self.solution,dt=self.dt)
 
     def run_MC(self,load_dict):
+        # 0. 手动预设值
+        self.frq = np.concatenate([
+            np.arange(1, 91, 10),
+            np.arange(100, 1000, 100),
+            np.arange(1000, 10000, 1000),
+            np.arange(10000, 100000, 10000)
+        ])
+        self.VF = {'odc': 10,
+              'frq': self.frq}
+        self.dt = 1e-8
+        self.T = 0.003
+        # 是否有定义
+        if 'Global' in load_dict:
+            self.dt = load_dict['Global']['delta_time']
+            self.T = load_dict['Global']['time']
+            f0 = load_dict['Global']['constant_frequency']
+            max_length = load_dict['Global']['max_length']
+            global_ground = load_dict['Global']['ground']['glb']
+            ground = initialize_ground(load_dict['Global']['ground']) if 'ground' in load_dict['Global'] else None
+        # 1. 初始化电网，根据电网信息计算源
+        self.initialize_network(load_dict, self.frq,self.VF,self.dt,self.T)
+        self.Nt = int(np.ceil(self.T/self.dt))
+
+
+        # 2. 保存支路节点信息
+        self.calculate_branches(self.max_length)
+
+        # 3. 生成多个雷电
         if load_dict["MC"]:
             print("running Monte Carlo to generate lightnings")
-            run_MC(self,load_dict)
-    def reverse_lump(self):
-        for lump in chain(self.switch_disruptive_effect_models, self.voltage_controled_switchs,
-                          self.time_controled_switchs+self.nolinear_resistors):
-            lump.on_off = 1
-            lump.DE = 0
-        print("init lump")
+            df27,parameterst,stroke_result = run_MC(self,load_dict)
+
+            index = 0
+            with ProcessPoolExecutor() as executor:
+                futures = []
+                # 为每个 flash 提交任务
+                for i in df27.groupby("flash"):
+                    futures.append(
+                        executor.submit(self.process_flash, i, df27, parameterst, stroke_result, load_dict, index))
+
+                # 等待所有任务完成
+                for future in as_completed(futures):
+                    print(future.result())
+
+
+    def process_flash(self,i, df27, parameterst, stroke_result, load_dict, index):
+        stroke_list = []
+        for j in range(i[1].shape[0]):
+            stroke_type = "Heidler"
+            duration = 1e-5
+            dt = 1e-8
+            stroke = Stroke(stroke_type, duration=duration, dt=dt, is_calculated=True, parameter_set=None,
+                            parameters=parameterst[index].tolist()[2:])
+            stroke.calculate()
+            index += 1
+            stroke_list.append(stroke)
+        flash_type = stroke_result[0][index - 1]
+        area = int(stroke_result[1][index - 1])
+        area_id = 0 if math.isnan(stroke_result[2][index - 1]) else str(int(stroke_result[2][index - 1]))
+        cir_id = 0 if math.isnan(float(stroke_result[3][index - 1])) else int(
+            float(stroke_result[3][index - 1]))
+        phase_id = 0 if math.isnan(float(stroke_result[4][index - 1])) else int(
+            float(stroke_result[4][index - 1]))
+        position_xy = stroke_result[8][index - 1]
+        position = None
+        wire = None
+        if area == 0:
+            area = "Ground"
+            position = position_xy.append(0)
+        elif area == 1:
+            area = "tower_" + area_id
+            for tower in load_dict["Tower"]:
+                if tower["Info"]["name"] == area:
+                    z = tower["Info"]["pole_height"]
+                    position = position_xy.append(z)
+                    for w in tower["Wire"]:
+                        if w["pos_1"][2] == z or w["pos_2"][2] == z:
+                            wire = w["bran"]
+                    if wire is None:
+                        wire = tower["Wire"][0]
+
+        elif area == 2:
+            area = "OHL_" + area_id
+            for ohl in load_dict["OHL"]:
+                if ohl["Info"]["name"] == area:
+                    for w in ohl["Wire"]:
+                        cir_id_ohl = w['cir_id']
+                        phase_id_ohl = w['phase_id']
+                        if cir_id_ohl == cir_id and phase_id_ohl == phase_id:
+                            z = w["node1_pos"][2]
+                            position = position_xy.append(z)
+                            if w['type'] == 'SW':
+                                wire = 'Y' + str(cir_id) + 'S'
+                            elif w['type'] == 'CIRO':
+                                wire = 'Y' + str(cir_id) + w['phase']
+
+        lightning = Lightning(id=1, type=flash_type, strokes=stroke_list, channel=Channel(position_xy))
+        sources = self.source_calculate(lightning, area, wire, position_xy)
+        H = copy.deepcopy(self.build_H())
+        self.calculate(self.dt, H, sources)
+        print("light: "+i+" calculating")
+
 
     def run(self,load_dict,*basestrategy):
         # 0. 手动预设值
@@ -305,7 +387,7 @@ class Network:
                 self.sources = self.source_calculate(self.lightning,
                                                  light["area"], light["wire"], light["position"])
 
-        self.calculate()
+        self.solution = self.calculate(self.dt,self.H,self.sources)
 
     def find_wire(self,load_dict,light,area,cir,phase):
         if area.split("_")[0] == "OHL":
@@ -378,6 +460,9 @@ class Network:
 
         if load_dict["Sensitivity_analysis"]["DE"]:
             Strategy.Change_DE_max().apply(self,load_dict["Sensitivity_analysis"]["DE"])
+            self.calculate(self.dt, self.H, self.sources)
+            pd.DataFrame(self.run_measure()).to_csv("DE_modified.csv")
+
 
         if load_dict["Sensitivity_analysis"]["ROD"]:
             for tower in load_dict["Tower"]:
