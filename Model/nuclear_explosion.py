@@ -4,6 +4,7 @@ from Contant import Constant
 from Ground import Ground
 from matplotlib.animation import FuncAnimation
 
+
 class NuclearExplosionSource:
     def __init__(self, f, k, amplitude, alpha, beta, phi0, theta_i, ground: Ground):
         """
@@ -228,6 +229,8 @@ if __name__ == '__main__':
         return wave
 
     m = [transmit_wave(z=[-1], t=i) for i in np.linspace(0, 5e-8, 1000+1)]
+    plt.plot(np.linspace(0, 5e-8, 1000+1), m)
+    plt.show()
 
     # 初始化绘图
     fig, ax = plt.subplots()
@@ -235,10 +238,12 @@ if __name__ == '__main__':
     z2 = np.linspace(-25, -0.01, 2500)
 
     # 多个波形，每个波形一个line对象
-    line1, = ax.plot(z1, incide_wave(z1, 0))
-    line2, = ax.plot(z1, reflect_wave(z1, 0))
-    line3, = ax.plot(z2, transmit_wave(z2, 0))
+    line1, = ax.plot(z1, incide_wave(z1, 0), label='incident')
+    line2, = ax.plot(z1, reflect_wave(z1, 0), color='black', label='standing_wave')
+    line3, = ax.plot(z2, transmit_wave(z2, 0), label='transmit')
     lines = [line1, line2, line3]
+
+    ax.legend()
 
     # 更新函数
     def update(frame):
@@ -249,7 +254,7 @@ if __name__ == '__main__':
 
 
     # 创建动画
-    ani = FuncAnimation(fig, update, frames=np.linspace(0, 5e-8, 1000+1), interval=40, blit=True)
+    ani = FuncAnimation(fig, update, frames=np.linspace(0, 5e-8, 100+1), interval=100, blit=True)
     plt.show()
 
     # _, s1 = nuc_source.propagate(a=np.pi / 6, position=[3, 0, 1])
