@@ -227,27 +227,29 @@ if __name__ == '__main__':
         wave = np.array([np.linalg.norm(wave[i, :]) * sign[i] for i in range(len(wave))])
         return wave
 
+    m = [transmit_wave(z=[-1], t=i) for i in np.linspace(0, 5e-8, 1000+1)]
+
     # 初始化绘图
     fig, ax = plt.subplots()
-    z1 = np.linspace(0, 50, 5000+1)
-    z2 = np.linspace(-50, -0.01, 5000)
+    z1 = np.linspace(0, 25, 2500+1)
+    z2 = np.linspace(-25, -0.01, 2500)
 
     # 多个波形，每个波形一个line对象
-    line1, = ax.plot(z1, incide_wave(z1, [0]))
-    line2, = ax.plot(z1, reflect_wave(z1, [0]))
-    line3, = ax.plot(z2, transmit_wave(z2, [0]))
+    line1, = ax.plot(z1, incide_wave(z1, 0))
+    line2, = ax.plot(z1, reflect_wave(z1, 0))
+    line3, = ax.plot(z2, transmit_wave(z2, 0))
+    lines = [line1, line2, line3]
 
     # 更新函数
     def update(frame):
-        line1.set_ydata(incide_wave(z1, frame))  # 更新每个波形的数据
-        line2.set_ydata(reflect_wave(z1, frame))  # 更新每个波形的数据
-        line3.set_ydata(transmit_wave(z2, frame))  # 更新每个波形的数据
-        lines = [line1, line2, line3]
+        lines[0].set_ydata(incide_wave(z1, frame))  # 更新每个波形的数据
+        lines[1].set_ydata(reflect_wave(z1, frame))  # 更新每个波形的数据
+        lines[2].set_ydata(transmit_wave(z2, frame))  # 更新每个波形的数据
         return lines
 
 
     # 创建动画
-    ani = FuncAnimation(fig, update, frames=np.linspace(0, 100, 1000+1), blit=False)
+    ani = FuncAnimation(fig, update, frames=np.linspace(0, 5e-8, 1000+1), interval=40, blit=True)
     plt.show()
 
     # _, s1 = nuc_source.propagate(a=np.pi / 6, position=[3, 0, 1])
