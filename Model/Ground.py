@@ -1,5 +1,5 @@
 class Ground:
-    def __init__(self, sig, mur, epr, gnd_model, ionisation_intensity, ionisation_model):
+    def __init__(self, sig=None, mur=None, epr=None, gnd_model=None, ionisation_intensity=None, ionisation_model=None):
         """
         sig(float):电导率
         mur(float):相对磁导率
