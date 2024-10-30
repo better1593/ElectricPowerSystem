@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Qt5Agg')
 from Contant import Constant
 from Ground import Ground
 from matplotlib.animation import FuncAnimation
+
 
 class NuclearExplosionSource:
     def __init__(self, f, k, amplitude, alpha, beta, phi0, theta_i, ground: Ground):
@@ -79,19 +82,25 @@ class NuclearExplosionSource:
         # 考虑反射波与透射波
         if position[2] >= 0:
             '''反射相位差，TE和TM波'''
+            # 反射波矢
             reflect_direction = self.direction
             reflect_direction[2] = - self.direction[2]
+            kr_vector = self.k0 * reflect_direction
+            # 反射点坐标
+            reflect_position = np.array([x0-abs(z0 * np.tan(self.theta_i)), 0, 0])
             # 相位差，时延
-            reflect_phase = np.dot(self.k0 * reflect_direction, position) + self.phi0
+            reflect_phase = np.dot(self.k_vector, reflect_position) + np.dot(kr_vector, position-reflect_position)
             # reflect_waveform = self.k * self.amplitude * np.cos(self.omega * t - reflect_phase + self.phi0)
             t0 = reflect_phase / self.omega
 
             # 计算TE波的反射系数
-            r_perpendicular = (eta1 * np.cos(self.theta_i) - eta2 * cos_theta_t) / \
-                              (eta1 * np.cos(self.theta_i) + eta2 * cos_theta_t)
+            r_perpendicular = (eta2 * np.cos(self.theta_i) - eta1 * cos_theta_t) / \
+                              (eta2 * np.cos(self.theta_i) + eta1 * cos_theta_t)
+            self.r_perpendicular = r_perpendicular
             # 计算TM波的反射系数
-            r_parallel = (eta2 * np.cos(self.theta_i) - eta1 * cos_theta_t) / \
-                         (eta2 * np.cos(self.theta_i) + eta1 * cos_theta_t)
+            r_parallel = (eta2 * cos_theta_t - eta1 * np.cos(self.theta_i)) / \
+                         (eta2 * cos_theta_t + eta1 * np.cos(self.theta_i))
+            self.r_parallel = r_parallel
 
             # 反射波的TE波分量
             E0_reflect_TE = self.k * self.amplitude * np.sin(a) * r_perpendicular  # 反射波的垂直极化波幅值
@@ -107,14 +116,16 @@ class NuclearExplosionSource:
                 [E0_reflect_TM * np.cos(self.omega * dt - reflect_phase + self.phi0) * E_reflect_TM_direction for dt in
                  t])  # 反射波的而平行极化波矢量
 
-            # 合成场
+            # 反射波矢量
+            reflect_waveform = E_reflect_TE + E_reflect_TM
+            # 入射波与反射波合成矢量
             total_waveform = E_incide_TE + E_incide_TM + E_reflect_TE + E_reflect_TM
-            return t0, np.squeeze(E_incide_waveform), np.squeeze(total_waveform)
+            return t0, np.squeeze(E_incide_waveform), np.squeeze(reflect_waveform), np.squeeze(total_waveform)
 
         elif position[2] < 0:
             '''折射相位差，假如观察点在地下，则z坐标为负'''
             # 计算折射波矢
-            kt0 = self.k0 * n2  # 折射波矢
+            kt0 = self.k0 * n2  # 折射波矢幅值
             transmit_direction = np.array([
                 sin_theta_t,
                 0,
@@ -124,17 +135,19 @@ class NuclearExplosionSource:
             # 折射点坐标
             transmit_position = np.array([x0-abs(z0 * tan_theta_t), 0, 0])
             # 相位差，时延
-            transmit_phase = np.dot(self.k_vector, transmit_position) + np.dot(kt_vector, position - transmit_position) + self.phi0
+            transmit_phase = np.dot(self.k_vector, transmit_position) + np.dot(kt_vector, position - transmit_position)
             transmit_waveform = self.k * self.amplitude * np.cos(self.omega * t - transmit_phase + self.phi0)
             t0 = transmit_phase / self.omega
 
             # 计算TE波透射系数
-            t_perpendicular = (2 * eta1 * np.cos(self.theta_i)) / \
-                              (eta1 * np.cos(self.theta_i) + eta2 * cos_theta_t)
+            t_perpendicular = (2 * eta2 * np.cos(self.theta_i)) / \
+                              (eta2 * np.cos(self.theta_i) + eta1 * cos_theta_t)
+            self.t_perpendicular = t_perpendicular
 
             # 计算TM波透射系数
-            t_parallel = (2 * eta1 * np.cos(self.theta_i)) / \
-                         (eta2 * np.cos(self.theta_i) + eta1 * np.cos(cos_theta_t))
+            t_parallel = (2 * eta2 * np.cos(self.theta_i)) / \
+                         (eta2 * cos_theta_t + eta1 * np.cos(self.theta_i))
+            self.t_parallel = t_parallel
 
             # 透射波
             E0_transmit_TE = self.k * self.amplitude * np.sin(a) * t_perpendicular  # 折射波的垂直极化波幅值
@@ -195,14 +208,14 @@ class NuclearExplosionSource:
 if __name__ == '__main__':
     # z = np.linspace(-50, 50, 5000+1)
     # t = np.linspace(0, 100, 1000+1)
+    a = np.pi / 6
     ground = Ground(mur=1, epr=3)
     nuc_source = NuclearExplosionSource(f=1e8, k=2.33, amplitude=50, alpha=0.5, beta=0.1, phi0=0, theta_i=0, ground=ground)
-    E_direction = np.array([np.cos(np.pi / 6), -1, np.sin(np.pi / 6)])
 
     def incide_wave(z, t):
         wave = []
         for i in z:
-            _, wave_point, _ = nuc_source.propagate(a=np.pi / 6, t=[t], position=[0, 0, i])
+            _, wave_point, _, _ = nuc_source.propagate(a=a, t=[t], position=[0, 0, i])
             wave.append(wave_point)
         wave = np.array(wave)
         return wave
@@ -210,8 +223,24 @@ if __name__ == '__main__':
     def reflect_wave(z, t):
         wave = []
         for i in z:
-            _, _, wavepoint = nuc_source.propagate(a=np.pi / 6, t=[t], position=[0, 0, i])
+            _, _, wavepoint, _ = nuc_source.propagate(a=a, t=[t], position=[0, 0, i])
             wave.append(wavepoint)
+        E_direction = np.array([-nuc_source.r_parallel * np.cos(a) * np.cos(nuc_source.theta_i),
+                                -nuc_source.r_perpendicular * np.sin(a),
+                                -nuc_source.r_parallel * np.cos(a) * np.sin(nuc_source.theta_i)])
+        wave = np.array(wave)
+        sign = np.sign(wave @ E_direction)
+        wave = np.array([np.linalg.norm(wave[i, :]) * sign[i] for i in range(len(wave))])
+        return wave
+
+    def hecheng_wave(z, t):
+        wave = []
+        for i in z:
+            _, _, _, wavepoint = nuc_source.propagate(a=a, t=[t], position=[0, 0, i])
+            wave.append(wavepoint)
+        E_direction = np.array([-nuc_source.r_parallel * np.cos(a) * np.cos(nuc_source.theta_i),
+                                -nuc_source.r_perpendicular * np.sin(a),
+                                -nuc_source.r_parallel * np.cos(a) * np.sin(nuc_source.theta_i)])
         wave = np.array(wave)
         sign = np.sign(wave @ E_direction)
         wave = np.array([np.linalg.norm(wave[i, :]) * sign[i] for i in range(len(wave))])
@@ -220,34 +249,52 @@ if __name__ == '__main__':
     def transmit_wave(z, t):
         wave = []
         for i in z:
-            _, _, wavepoint = nuc_source.propagate(a=np.pi / 6, t=[t], position=[0, 0, i])
+            _, _, wavepoint = nuc_source.propagate(a=a, t=[t], position=[0, 0, i])
             wave.append(wavepoint)
+        E_direction = np.array([nuc_source.t_parallel * np.cos(a) * np.cos(nuc_source.theta_i),
+                                -nuc_source.t_perpendicular * np.sin(a),
+                                nuc_source.t_parallel * np.cos(a) * np.sin(nuc_source.theta_i)])
         wave = np.array(wave)
         sign = np.sign(wave @ E_direction)
         wave = np.array([np.linalg.norm(wave[i, :]) * sign[i] for i in range(len(wave))])
         return wave
 
+    m = [reflect_wave(z=[1], t=i) for i in np.linspace(0, 5e-8, 1000+1)]
+    plt.plot(np.linspace(0, 5e-8, 1000+1), m)
+    plt.show()
+
     # 初始化绘图
     fig, ax = plt.subplots()
-    z1 = np.linspace(0, 50, 5000+1)
-    z2 = np.linspace(-50, -0.01, 5000)
+    z1 = np.linspace(0, 25, 2500+1)
+    z2 = np.linspace(-25, -0.01, 2500)
 
     # 多个波形，每个波形一个line对象
-    line1, = ax.plot(z1, incide_wave(z1, [0]))
-    line2, = ax.plot(z1, reflect_wave(z1, [0]))
-    line3, = ax.plot(z2, transmit_wave(z2, [0]))
+    line1, = ax.plot(z1, incide_wave(z1, 4.1e-8), label='incident')
+    line2, = ax.plot(z1, reflect_wave(z1, 4.1e-8), label='reflect')
+    line3, = ax.plot(z1, hecheng_wave(z1, 4.1e-8), label='hecheng')
+    line4, = ax.plot(z2, transmit_wave(z2, 4.1e-8), label='transmit')
+    lines = [line1, line2, line3, line4]
+
+    ax.legend()
+    plt.show()
 
     # 更新函数
+    # def update(frame):
+    #     lines[0].set_ydata(incide_wave(z1, frame))  # 更新每个波形的数据
+    #     lines[1].set_ydata(reflect_wave(z1, frame))  # 更新每个波形的数据
+    #     lines[2].set_ydata(hecheng_wave(z1, frame))  # 更新每个波形的数据
+    #     lines[3].set_ydata(transmit_wave(z2, frame))  # 更新每个波形的数据
+    #     return lines
     def update(frame):
-        line1.set_ydata(incide_wave(z1, frame))  # 更新每个波形的数据
-        line2.set_ydata(reflect_wave(z1, frame))  # 更新每个波形的数据
-        line3.set_ydata(transmit_wave(z2, frame))  # 更新每个波形的数据
-        lines = [line1, line2, line3]
-        return lines
-
+        ax.cla()
+        line1, = ax.plot(z1, incide_wave(z1, frame), label='incident')
+        line2, = ax.plot(z1, reflect_wave(z1, frame), label='reflect')
+        line3, = ax.plot(z1, hecheng_wave(z1, frame), label='hecheng')
+        line4, = ax.plot(z2, transmit_wave(z2, frame), label='transmit')
+        ax.legend()
 
     # 创建动画
-    ani = FuncAnimation(fig, update, frames=np.linspace(0, 100, 1000+1), blit=False)
+    ani = FuncAnimation(fig, update, frames=np.linspace(4e-8, 5e-8, 100+1), interval=100, blit=False)
     plt.show()
 
     # _, s1 = nuc_source.propagate(a=np.pi / 6, position=[3, 0, 1])
