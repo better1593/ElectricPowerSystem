@@ -260,8 +260,8 @@ if __name__ == '__main__':
         return wave
 
     m = [reflect_wave(z=[1], t=i) for i in np.linspace(0, 5e-8, 1000+1)]
-    plt.plot(np.linspace(0, 5e-8, 1000+1), m)
-    plt.show()
+    # plt.plot(np.linspace(0, 5e-8, 1000+1), m)
+    # plt.show()
 
     # 初始化绘图
     fig, ax = plt.subplots()
