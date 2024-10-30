@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # z = np.linspace(-50, 50, 5000+1)
     # t = np.linspace(0, 100, 1000+1)
     a = np.pi / 6
-    ground = Ground(mur=0, epr=5)
+    ground = Ground(mur=0, epr=2)
     nuc_source = NuclearExplosionSource(f=1e8, k=2.33, amplitude=50, alpha=0.5, beta=0.1, phi0=0, theta_i=0, ground=ground)
 
     def incide_wave(z, t):
