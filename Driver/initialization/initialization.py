@@ -9,7 +9,7 @@ from Model.Lump import Lumps, Resistor_Inductor, Conductor_Capacitor, \
     Voltage_Control_Voltage_Source, Current_Control_Voltage_Source, Voltage_Control_Current_Source, \
     Current_Control_Current_Source, Transformer_One_Phase, Transformer_Three_Phase, Mutual_Inductance_Two_Port, \
     Mutual_Inductance_Three_Port, Nolinear_Resistor, Nolinear_F, Voltage_Controled_Switch, Time_Controled_Switch, A2G, \
-    Switch_Disruptive_Effect_Model, Nolinear_Element_Parameters, Switch_Parameters, ROD
+    Switch_Disruptive_Effect_Model, Nolinear_Element_Parameters, Switch_Parameters, ROD, MTCK
 from Model.Node import Node
 from Model.Wires import Wire, Wires, CoreWire, TubeWire
 from Model.Ground import Ground
@@ -20,9 +20,10 @@ from Model.Contant import Constant
 from Function.Calculators.InducedVoltage_calculate import InducedVoltage_calculate, LightningCurrent_calculate
 import pandas as pd
 from Model.Cable import Cable
-from Model.Info import TowerInfo,OHLInfo, CableInfo
+from Model.Info import TowerInfo, OHLInfo, CableInfo
 from Model.Device import Devices
 from Utils.Math import segment_branch
+
 
 # initialize wire in tower
 def initialize_wire(wire, nodes,VF):
@@ -50,6 +51,7 @@ def initialize_wire(wire, nodes,VF):
         radius = wire['rc']
         return CoreWire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF, wire['oft'], wire['cita'])
 
+
 # initialize wire in OHL
 def initialize_OHL_wire(wire):
     cir_id = wire['cir_id']
@@ -65,7 +67,6 @@ def initialize_OHL_wire(wire):
     pos_end = wire['node2_pos']
     node_start = Node(name=node_name_start, x=pos_start[0], y=pos_start[1], z=pos_start[2])
     node_end = Node(name=node_name_end, x=pos_end[0], y=pos_end[1], z=pos_end[2])
-
 
     offset = wire['offset']
     radius = wire['r0']
@@ -87,6 +88,7 @@ def initialize_OHL_wire(wire):
 
     return Wire(bran, node_start, node_end, offset, radius, R, L, sig, mur, epr, VF)
 
+
 # initialize ground in tower
 def initialize_ground(ground_dic):
     sig = ground_dic['sig']
@@ -98,17 +100,13 @@ def initialize_ground(ground_dic):
 
     return Ground(sig, mur, epr, model, ionisation_intensity, ionisation_model)
 
-def initalize_wire_measurement(wire,measurement,tower_name):
+
+def initalize_wire_measurement(wire, measurement, tower_name):
     if wire['probe']:
-
-        measurement[wire['bran']] = [0,wire[ 'probe'],wire['bran'],wire['node1'],wire['node2'],tower_name]
-
+        measurement[wire['bran']] = [0, wire['probe'], wire['bran'], wire['node1'], wire['node2'], tower_name]
 
 
-
-def initialize_tower(tower_dict, max_length, dt, T,VF):
-
-
+def initialize_tower(tower_dict, max_length, dt, T, VF):
     # tower_dict['Wire']
     # 1. initialize wires
     wires = Wires()
@@ -171,9 +169,8 @@ def initialize_tower(tower_dict, max_length, dt, T,VF):
     print(f"Tower:{tower.name} loaded.")
     return tower
 
+
 def initialize_OHL(OHL_dict, max_length):
-
-
     # 1. initialize wires
     wires = Wires()
     for wire in OHL_dict['Wire']:
@@ -207,13 +204,15 @@ def initialize_OHL(OHL_dict, max_length):
     print(f"OHL:{ohl.info.name} loaded.")
     return ohl
 
+
 def initialize_measurement(file_name):
     json_file_path = "Data/" + file_name + ".json"
     # 0. read json file
     with open(json_file_path, 'r') as j:
         load_dict = json.load(j)
 
-def initial_lump(lump_data, dt, T,measurement):
+
+def initial_lump(lump_data, dt, T, measurement):
     Nt = int(np.ceil(T / dt))
 
     lumps = Lumps()
@@ -320,8 +319,8 @@ def initial_lump(lump_data, dt, T,measurement):
                     Mutual_Inductance_Three_Port(name, bran_name, node1, node2, resistance, inductance))
             case 'NLR':
                 resistance = lump['value1']
-                #model = lump['model']
-                if 'model' in  lump:
+                model = lump['model']
+                if model != None:
                     nolinear_model = eval('nolinear_element_parameters.' + str(model))
                     vi_characteristics = nolinear_model['vi_characteristics']
                     ri_characteristics = nolinear_model['ri_characteristics']
@@ -375,11 +374,10 @@ def initial_lump(lump_data, dt, T,measurement):
                 lumps.add_switch_disruptive_effect_model(
                     Switch_Disruptive_Effect_Model(name, bran_name, node1, node2, resistance, 0, DE_max, v_initial, k))
             case 'MTCK':
-                dist = np.array(lump['distance'])
-                high = np.array(lump['high'])
+                dist = np.array(lump['node1_pos'][:, 1])
+                high = np.array(lump['node1_pos'][:, 2])
                 radius = np.array(lump['r0'])
-
-
+                lumps.add_MTCK(MTCK(name, bran_name, node1, dist, high, radius))
 
     # 获取器件不重复的支路列表和节点列表
     lumps.brans_nodes_list_initial()
@@ -391,7 +389,7 @@ def initial_lump(lump_data, dt, T,measurement):
     lumps.lump_voltage_source_matrix_initial(T, dt)
     # 初始化Lumps电流矩阵
     lumps.lump_current_source_matrix_initial(T, dt)
-    return lumps,measurement
+    return lumps, measurement
 
 def initial_device(device_data, dt, T,measurement):
     devices = Devices()
@@ -406,9 +404,9 @@ def initial_device(device_data, dt, T,measurement):
             devices.add_transformer(lumps)
     # d = data.shape[0]
 
-    return devices,measurement
+    return devices, measurement
 
-def initial_source( load_dict,dt):
+def initial_lightning( load_dict,dt):
     # 0. read json file
     stroke_list = []
     for stroke_dict in load_dict['Stroke']:
@@ -466,8 +464,9 @@ def initialize_cable(cable, max_length,VF):
 
     # 3. initalize cable
     cable = Cable(cable['name'], info, wires, ground)
-    cable.wires_name = cable.wires.get_all_wires()
-    cable.nodes_name = cable.wires.get_all_nodes()
+    cable.wires_name = list(cable.wires.get_all_wires().keys())
+    cable.nodes_name = cable.get_cable_nodes_list()
+
     print("Cable loaded.")
     return cable
 

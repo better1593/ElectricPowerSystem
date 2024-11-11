@@ -74,8 +74,51 @@ def LightningCurrent_calculate(p1, p2, position, network, node_index, lightning,
         I_out = pd.DataFrame(0, index=node_index, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
         return I_out
 
+def InducedVoltage_calculate_direct(branch_list,lightning,stroke_sequence):
+    Uout = pd.DataFrame(0, index=branch_list, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
+    return Uout
+def InducedVoltage_calculate_indirect(pt_start, pt_end, branch_list, lightning: Lightning, stroke_sequence,Er_lossy,Ez_lossy):
+    # Ez_T, Er_T = ElectricField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel,
+    #                                      constants.ep0, constants.vc)  # 计算电场
+    # erg = constants.epr
+    # sigma_g = constants.sigma
+    # if (erg, sigma_g) in VF_dict:
+    #     Er_lossy = VF_dict[(erg, sigma_g)]
+    #     print("------------existing ---------------")
+    # else:
+    #     H_p = H_MagneticField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel,
+    #                                     constants.ep0, constants.vc)  # 计算磁场
+    #     # 计算有损地面的电场
+    #     Er_lossy = ElectricField_above_lossy(-H_p, Er_T, constants, VF_dict, constants.sigma)
+    #     VF_dict[(erg, sigma_g)] = Er_lossy
+    # Ez_lossy = Ez_T
 
-def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning, stroke_sequence, constants: Constant):
+    # 利用公式U = E * L计算感应电动势
+    a00 = pt_start.shape[0]  # 导体段个数
+
+    Rx = (pt_start[:, 0] + pt_end[:, 0]) / 2 - lightning.channel.hit_pos[0]
+    Ry = (pt_start[:, 1] + pt_end[:, 1]) / 2 - lightning.channel.hit_pos[1]
+    Rxy = np.sqrt(Rx ** 2 + Ry ** 2)
+
+    Uout = np.zeros((lightning.strokes[stroke_sequence].Nt, a00))  # 初始化矩阵
+
+    for ik in range(a00):
+        x1, y1, z1 = pt_start[ik]
+        x2, y2, z2 = pt_end[ik]
+
+        if Rxy[ik] == 0:
+            Uout[:, ik] = Ez_lossy[:, ik] * (z1 - z2)
+        else:
+            cosx = Rx[ik] / Rxy[ik]
+            cosy = Ry[ik] / Rxy[ik]
+            Uout[:, ik] = (Er_lossy[:, ik] * cosx * (x1 - x2) +
+                           Er_lossy[:, ik] * cosy * (y1 - y2) +
+                           Ez_lossy[:, ik] * (z1 - z2))
+
+    Uout = Uout.T
+    return pd.DataFrame(Uout, index=branch_list)
+
+def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning, stroke_sequence, constants: Constant,VF_dict):
     """
     【功能】：
     计算每个导体段，在每个时刻的感应电动势
@@ -88,11 +131,20 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
     U_out (len(pt_start), lightning.strokes[stroke_sequence].Nt): 电压矩阵
     """
     if lightning.type == 'Indirect':
-        Ez_T, Er_T = ElectricField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel, constants.ep0, constants.vc)  # 计算电场
-        H_p = H_MagneticField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel, constants.ep0, constants.vc)  # 计算磁场
+        Ez_T, Er_T = ElectricField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence],
+                                             lightning.channel, constants.ep0, constants.vc)  # 计算电场
+        erg = constants.epr
+        sigma_g = constants.sigma
+        if (erg,sigma_g) in VF_dict:
+            Er_lossy = VF_dict[(erg,sigma_g)]
+            print("------------existing ---------------")
+        else:
 
-        # 计算有损地面的电场
-        Er_lossy = ElectricField_above_lossy(-H_p, Er_T, constants, constants.sigma)
+            H_p = H_MagneticField_calculate(pt_start, pt_end, lightning.strokes[stroke_sequence], lightning.channel,
+                                            constants.ep0, constants.vc)  # 计算磁场
+            # 计算有损地面的电场
+            Er_lossy = ElectricField_above_lossy(-H_p, Er_T, constants, VF_dict, constants.sigma)
+            VF_dict[(erg,sigma_g)] = Er_lossy
         Ez_lossy = Ez_T
 
         # 利用公式U = E * L计算感应电动势
@@ -118,7 +170,7 @@ def InducedVoltage_calculate(pt_start, pt_end, branch_list, lightning: Lightning
                                Ez_lossy[:, ik] * (z1 - z2))
 
         Uout = Uout.T
-        return pd.DataFrame(Uout, index=branch_list)
+        return pd.DataFrame(Uout, index=branch_list),VF_dict
     elif lightning.type == 'Direct':
         Uout = pd.DataFrame(0, index=branch_list, columns=range(lightning.strokes[stroke_sequence].Nt), dtype=np.float64)
         return Uout
@@ -218,7 +270,7 @@ def H_MagneticField_calculate(pt_start, pt_end, stroke, channel, ep0, vc):
     return H_p
 
 
-def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
+def ElectricField_above_lossy(HR0, ER,  constants: Constant,VF_dict, sigma0=None):
     erg = constants.epr
     sigma_g = constants.sigma
     if sigma0 is not None:
@@ -239,7 +291,9 @@ def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
         H_in[:, :, ii] = vc * u0 / np.sqrt(erg + sigma_g / (1j * w[:, ii] * ep0))
 
     # The vecfit_kernel_Z_Ding function must be defined or replaced by an equivalent fitting routine
+
     R0, L0, Rn, Ln, Zfit = vecfit_kernel_Z_Ding(H_in, w / (2 * np.pi), Nd)
+
 
     # R0_1 = R0 - np.sum(Rn, axis=2)
     # L0_1 = L0
@@ -288,7 +342,7 @@ def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
     ee_conv_sum = np.sum(ee_conv, axis=2)
     ee_all = ee0[:, :Ntt:conv_2] + eeL[:, :Ntt:conv_2] + ee_conv_sum[:, :Ntt:conv_2]
     Er_lossy = ER + ee_all.T
-
+    VF_dict[(erg, sigma_g)] = Er_lossy
     return Er_lossy
 
 

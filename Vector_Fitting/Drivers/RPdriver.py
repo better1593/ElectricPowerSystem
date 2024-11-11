@@ -142,9 +142,9 @@ class RPdriver:
         plotte = False
         if self.options['plot']:
             plotte = True
-            s_pass = self.options['s_pass']
-            xlimflag = self.options['xlim']
-            ylimflag = self.options['ylim']
+            s_pass = self.options['s_pass'] if self.options['s_pass'] else np.array([])
+            xlimflag = self.options['xlim'] if self.options['xlim'] else np.array([])
+            ylimflag = self.options['ylim'] if self.options['ylim'] else np.array([])
         else:
             s_pass = np.array([])
             xlimflag = np.array([])

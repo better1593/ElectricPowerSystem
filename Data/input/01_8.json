@@ -349,7 +349,7 @@
           "name": "Tower_1_connect_OHL_S",
           "probe": null,
           "bran_name": "Y_T12O_S",
-          "node1": "X01_OHL",
+          "node1": "X01",
           "node2": "X01",
           "data_type": null,
           "value1": 1E-9,
@@ -841,7 +841,7 @@
       ],
       "Lump": [
         {
-          "Type": "RL",
+          "Type": "ROD",
           "name": "GRID1",
           "probe": 2,
           "bran_name": "Y09_Tower_2",
@@ -1056,8 +1056,8 @@
         {
           "type": "SW",
           "bran": "",
-          "node1": "X01_OHL",
-          "node2": "X17_OHL",
+          "node1": "X01",
+          "node2": "X17",
           "node1_pos": [
             0,
             0,
@@ -1090,8 +1090,8 @@
         {
           "type": "CIRO",
           "bran": "",
-          "node1": "X02_OHL",
-          "node2": "X18_OHL",
+          "node1": "X02",
+          "node2": "X18",
           "node1_pos": [
             0,
             -0.4,
@@ -1124,8 +1124,8 @@
         {
           "type": "CIRO",
           "bran": "",
-          "node1": "X03_OHL",
-          "node2": "X19_OHL",
+          "node1": "X03",
+          "node2": "X19",
           "node1_pos": [
             0,
             0.1,
@@ -1158,8 +1158,8 @@
         {
           "type": "CIRO",
           "bran": "",
-          "node1": "X04_OHL",
-          "node2": "X20_OHL",
+          "node1": "X04",
+          "node2": "X20",
           "node1_pos": [
             0,
             0.6,
@@ -1254,16 +1254,11 @@
     },
     "Soil": [],
     "Arrester": {
-      "name": null,
-      "position": [],
-      "node_map": {},
-      "wire_map": {}
+      "name": []
     },
     "SW": {
-      "name": null,
-      "position": [],
-      "bran": [],
-      "ground": []
+      "name": []
+
     },
     "ROD": {
       "tower": null,

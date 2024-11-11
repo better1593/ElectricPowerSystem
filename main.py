@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
-
+import multiprocessing
+from multiprocessing import Process, Manager
 from Model import Strategy
 from Model.Network import Network
 import matplotlib.pyplot as plt
@@ -16,20 +17,23 @@ if __name__ == '__main__':
         load_dict = json.load(j)
     varied_frequency = np.arange(0, 37, 9)
     network = Network()
-    change = Strategy.Change_DE_max()
-    #network.run(load_dict,change)
-    pd.DataFrame(network.run_measure()).to_csv("ROD.csv")
+    #change = Strategy.Change_DE_max()
+    strategy = Strategy.variant_frequency()
+    network.run(load_dict,strategy)
+    #network.run_individual(load_dict)
+    #pd.DataFrame(network.run_measure()).to_csv("Data/Output/"+file_name+"_output.csv")
 
 
-
+    # 二、灵敏度分析模块
     #network.sensitive_analysis(load_dict)
 
+    # 三、蒙特卡洛，大量模拟运算
 
-    network.run_MC(load_dict)
+    #network.run_MC(load_dict)
 
 #    pickle.dump(network, open("network.pkl", 'wb'))  # 序列化
 
-    print(network.solution)
+    #print(network.solution)
     #print(network.measurement)
 
 

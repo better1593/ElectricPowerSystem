@@ -59,25 +59,7 @@ class Change_light_parameters(Strategy):
             stroke.calculate()
         network.sources = network.source_calculate(lightning, pos_dict)
         network.calculate(network.dt, network.H, network.sources)
-class Change_Arrestor_pos(Strategy):
-    def apply(self, network,name, wire_mapping,node_mapping):
-        print("changing arrestor position calculation")
-        for tower in network.towers:
-            for device in tower.devices:
-                for arrestor in device.arrestors:
-                    if arrestor.name == name:
-                        arrestor.capacitance_matrix = arrestor.capacitance_matrix.rename(columns=node_mapping,index=node_mapping)
-                        arrestor.inductance_matrix = arrestor.inductance_matrix.rename(columns=wire_mapping,index=wire_mapping)
-                        arrestor.incidence_matrix_A = arrestor.incidence_matrix_A.rename(columns=node_mapping,index=wire_mapping)
-                        arrestor.inductance_matrix_B = arrestor.inductance_matrix_B.rename(columns=node_mapping,index=wire_mapping)
-                        arrestor.resistance_matrix = arrestor.resistance_matrix.rename(columns=wire_mapping,index=wire_mapping)
-                        arrestor.conductance_matrix = arrestor.conductance_matrix.rename(columns=node_mapping,index=node_mapping)
-            tower.reset_matrix()
-            gnd = network.ground if network.global_ground == 1 else tower.ground
-            tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
 
-            network.combine_parameter_matrix()
-            network.calculate(network.dt,network.H,network.sources)
 
 class Change_ROD(Strategy):
     def apply(self, network, load_dict,lumpname,r,l):
@@ -105,33 +87,71 @@ class Change_ground(Strategy):
         network.run(load_dict)
 
 
-class Change_SW(Strategy):
-    def apply(self,  load_dict, name,position,bran):
-
-        for index,ohl in enumerate(load_dict['OHL']):
-            if ohl.name == name:
-                if position:
-                    ohl["position"] = position # 修改值
-                if bran:
-                    ohl["bran"] = bran # 修改值
-                load_dict['OHL'][index] = ohl
-
-        with open("modified", 'w') as file:
+class Change_Arrestor_pos(Strategy):
+    def apply(self, network,load_dict,remove_tower_list):
+        print("changing arrestor position calculation")
+        # for tower in network.towers:
+        #     for device in tower.devices:
+        #         for arrestor in device.arrestors:
+        #             if arrestor.name == name:
+        #                 arrestor.capacitance_matrix = arrestor.capacitance_matrix.rename(columns=node_mapping,index=node_mapping)
+        #                 arrestor.inductance_matrix = arrestor.inductance_matrix.rename(columns=wire_mapping,index=wire_mapping)
+        #                 arrestor.incidence_matrix_A = arrestor.incidence_matrix_A.rename(columns=node_mapping,index=wire_mapping)
+        #                 arrestor.inductance_matrix_B = arrestor.inductance_matrix_B.rename(columns=node_mapping,index=wire_mapping)
+        #                 arrestor.resistance_matrix = arrestor.resistance_matrix.rename(columns=wire_mapping,index=wire_mapping)
+        #                 arrestor.conductance_matrix = arrestor.conductance_matrix.rename(columns=node_mapping,index=node_mapping)
+        #     tower.reset_matrix()
+        #     gnd = network.ground if network.global_ground == 1 else tower.ground
+        #     tower_building(tower, network.f0, network.max_length, gnd, network.varied_frequency)
+        #
+        #     network.combine_parameter_matrix()
+        #     network.calculate(network.dt,network.H,network.sources)
+        for tower in load_dict["Tower"]:
+            if tower['name'] in remove_tower_list:
+                tower["Device"] = [device for device in tower["Device"] if device['name'].split("_") != "Arrester"]
+        network.run(load_dict)
+        with open("modified_Arrester", 'w') as file:
             json.dump(load_dict, file, indent=4)
 
-        network = Network()
+class Change_SW(Strategy):
+    def apply(self,network,load_dict,name):
+
+        for ohl in load_dict['OHL']:
+            #if ohl.name == name:
+                # if position:
+                #     ohl["position"] = position # 修改值
+                # if bran:
+                #     ohl["bran"] = bran # 修改值
+                # load_dict['OHL'][index] = ohl
+            if ohl.name == name:
+                ohl["Wire"] = [wire for wire in ohl["Wire"] if wire['type'] != "SW"]
+        with open("modified_SW", 'w') as file:
+            json.dump(load_dict, file, indent=4)
+
         network.run(load_dict)
 
+class Change_DE_max(Strategy):
+    def apply(self,network,DE_max):
+        print("Changing DE max calculation is used")
+        for index,lump in enumerate(network.switch_disruptive_effect_models):
+            lump.parameters['DE_max'] = DE_max
+            switch_disruptive_copy = copy.deepcopy(network.switch_disruptive_effect_models)
+            switch_disruptive_copy[index] = lump
+        network.H["switch_disruptive_effect_models"] = switch_disruptive_copy
 
 class NonLinear(Strategy):
-    def apply(self,dt,H,sources):
+    def apply(self,Nt,dt,H,sources):
         print("Nonlinear calculation is used")
         branches, nodes = H["incidence_matrix_A"].shape
         source = np.array(sources)
         time_length = len(sources.columns.tolist())
-        out = np.zeros((branches + nodes, time_length))
+        if Nt>time_length:
+            Nt = time_length
+        else:
+            source = source[:,:Nt]
+        out = np.zeros((branches + nodes, Nt))
         # source = np.array(sources)
-        for i in range(time_length - 1):
+        for i in range(Nt - 1):
             C = H["capacitance_matrix"].to_numpy()  # 点点
             G = H["conductance_matrix"].to_numpy()
             L = H["inductance_matrix"].to_numpy()  # 线线
@@ -152,10 +172,11 @@ class NonLinear(Strategy):
                                        index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
 
             t = dt * (i + 1)
-            self.update_H(temp_result, t,H,dt)
+            H = self.update_H(temp_result, t,H,dt)
 
         solution = pd.DataFrame(out,
                                         index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
+
         return solution
     def update_H(self, current_result, time,H,dt):
         for switch_v_list in [H["switch_disruptive_effect_models"], H["voltage_controled_switchs"]]:
@@ -173,9 +194,10 @@ class NonLinear(Strategy):
             component_current = abs(current_result.loc[nolinear_resistor.bran[0], 0])
             resistance = nolinear_resistor.update_parameter(component_current)
             H["resistance_matrix"].loc[nolinear_resistor.bran[0], nolinear_resistor.bran[0]] = resistance
+        return H
 
 class Linear(Strategy):
-    def apply(self,dt,H,sources):
+    def apply(self,Nt,dt,H,sources):
         print("linear calculation is used")
         C = np.array(H["capacitance_matrix"])  # 点点
         G = np.array(H["conductance_matrix"])
@@ -187,10 +209,13 @@ class Linear(Strategy):
         nodes = len(H["capacitance_matrix"].columns.tolist())
         branches = len(H["inductance_matrix"].columns.tolist())
         time_length = len(sources.columns.tolist())
-
-        out = np.zeros((branches + nodes, time_length))
+        if Nt>time_length:
+            Nt = time_length
+        else:
+            source = source[:,:Nt]
+        out = np.zeros((branches + nodes, Nt))
         branches, nodes = ima.shape
-        for i in range(time_length - 1):
+        for i in range(Nt - 1):
             Vnode = out[:nodes, i].reshape((-1, 1))
             Ibran = out[nodes:, i].reshape((-1, 1))
             Isource = source[:, i + 1].reshape((-1, 1))
@@ -204,14 +229,42 @@ class Linear(Strategy):
                                         index=H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist())
         return solution
 
-class Change_DE_max(Strategy):
-    def apply(self,network,DE_max):
-        print("Changing DE max calculation is used")
-        for index,lump in enumerate(network.switch_disruptive_effect_models):
-            lump.parameters['DE_max'] = DE_max
-            switch_disruptive_copy = copy.deepcopy(network.switch_disruptive_effect_models)
-            switch_disruptive_copy[index] = lump
-        network.H["switch_disruptive_effect_models"] = switch_disruptive_copy
+class variant_frequency(Strategy):
+    def apply(self, network, dt):
+        print("Variant_frequency calculation is used")
+        branches, nodes = network.incidence_matrix_A.shape
+        time_length = len(network.sources.columns.tolist())
+        out = np.zeros((branches + nodes, time_length))
+        C = network.capacitance_matrix.to_numpy()  # 点点
+        G = network.conductance_matrix.to_numpy()
+        L = network.inductance_matrix.to_numpy()  # 线线
+        R = network.resistance_matrix.to_numpy()
+        ima = network.incidence_matrix_A.to_numpy()  # 线点
+        imb = network.incidence_matrix_B.T.to_numpy()  # 点线
+        # source = np.array(sources)
+        # network.sources.loc['YVs'] = 0
+        # network.sources.loc['YVs', 1:4999] = 100
+        result_index = network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist()
+        for i in range(time_length - 1):
+            Vnode = out[:nodes, i].reshape((-1, 1))
+            Ibran = out[nodes:, i].reshape((-1, 1))
+            pre_result = pd.DataFrame(np.vstack((Vnode, Ibran)), index=result_index)
+            network.update_source_variant_frequency(pre_result, i)
+            source = network.sources.to_numpy()[:, i].reshape((-1, 1))
+            LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
+            # inv_LEFT = np.linalg.inv(LEFT)
+            RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
+
+            # temp_result = inv_LEFT.dot(source + RIGHT)
+            temp_result = np.linalg.solve(LEFT, source + RIGHT)
+            # temp_result = inv_LEFT.dot(RIGHT)
+            out[:, i + 1] = np.copy(temp_result)[:, 0]
+            # temp_result = pd.DataFrame(temp_result, index=result_index)
+            # print(i)
+            # network.update_source_variant_frequency(temp_result, i + 2)
+
+        network.solution = pd.DataFrame(out, index=result_index)
+
 
 
 

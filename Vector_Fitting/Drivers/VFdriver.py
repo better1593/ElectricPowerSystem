@@ -143,7 +143,7 @@ class VFdriver:
             if self.options['poletype'] == PoleType.lincmplx or \
                     self.options['poletype'] ==PoleType.logcmplx:
                 if self.options['poletype'] == PoleType.lincmplx:
-                    bet = np.linspace(s[0] / 1j, s[Ns - 1] / 1j, N // 2)
+                    bet = np.linspace(s[0] / 1j, s[Ns - 1] / 1j, floor(N / 2))
                     poles = np.zeros(bet.shape[0] * 2, dtype=complex)
                     for n in range(bet.shape[0]):
                         alf = -nu * bet[n]
