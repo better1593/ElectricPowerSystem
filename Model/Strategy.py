@@ -7,6 +7,7 @@ import json
 import pickle
 from functools import reduce
 import copy
+from scipy.linalg import block_diag
 
 from Model import Network
 class Strategy(ABC):
@@ -230,27 +231,33 @@ class Linear(Strategy):
         return solution
 
 class variant_frequency(Strategy):
-    def apply(self, network, dt):
+    def apply(self,Nt,dt,H,sources):
         print("Variant_frequency calculation is used")
-        branches, nodes = network.incidence_matrix_A.shape
-        time_length = len(network.sources.columns.tolist())
-        out = np.zeros((branches + nodes, time_length))
-        C = network.capacitance_matrix.to_numpy()  # 点点
-        G = network.conductance_matrix.to_numpy()
-        L = network.inductance_matrix.to_numpy()  # 线线
-        R = network.resistance_matrix.to_numpy()
-        ima = network.incidence_matrix_A.to_numpy()  # 线点
-        imb = network.incidence_matrix_B.T.to_numpy()  # 点线
+
+        branches, nodes = H["incidence_matrix_A"].shape
+        source = np.array(sources)
+        time_length = len(sources.columns.tolist())
+        if Nt>time_length:
+            Nt = time_length
+        else:
+            source = source[:,:Nt]
+        out = np.zeros((branches + nodes, Nt))
+        C = H["capacitance_matrix"].to_numpy()  # 点点
+        G = H["conductance_matrix"].to_numpy()
+        L = H["inductance_matrix"].to_numpy()  # 线线
+        R = H["resistance_matrix"].to_numpy()
+        ima = H["incidence_matrix_A"].to_numpy()  # 线点
+        imb = H["incidence_matrix_B"].T.to_numpy()  # 点线
         # source = np.array(sources)
         # network.sources.loc['YVs'] = 0
         # network.sources.loc['YVs', 1:4999] = 100
-        result_index = network.capacitance_matrix.columns.tolist() + network.inductance_matrix.columns.tolist()
+        result_index = H["capacitance_matrix"].columns.tolist() + H["inductance_matrix"].columns.tolist()
         for i in range(time_length - 1):
             Vnode = out[:nodes, i].reshape((-1, 1))
             Ibran = out[nodes:, i].reshape((-1, 1))
             pre_result = pd.DataFrame(np.vstack((Vnode, Ibran)), index=result_index)
-            network.update_source_variant_frequency(pre_result, i)
-            source = network.sources.to_numpy()[:, i].reshape((-1, 1))
+            self.update_source_variant_frequency(pre_result, i)
+            source = sources.to_numpy()[:, i].reshape((-1, 1))
             LEFT = np.block([[-ima, -R - L / dt], [G + C / dt, -imb]])
             # inv_LEFT = np.linalg.inv(LEFT)
             RIGHT = np.block([[(-L / dt).dot(Ibran)], [(C / dt).dot(Vnode)]])
@@ -263,7 +270,33 @@ class variant_frequency(Strategy):
             # print(i)
             # network.update_source_variant_frequency(temp_result, i + 2)
 
-        network.solution = pd.DataFrame(out, index=result_index)
+        solution = pd.DataFrame(out, index=result_index)
+    def update_source_variant_frequency(self, current_result, next_point,sources,towers,OHLs,cables):
+        for tower in towers:
+            I = current_result.loc[tower.wires_name, 0].to_numpy()
+            phi_temp = []
+            for i in range(tower.A.shape[-1]):
+                phi_temp.append(tower.A[:, :, i].dot(I))
+            phi = np.expand_dims(np.array(phi_temp), axis=2).transpose(1, 2, 0)
+            tower.phi = phi + tower.B * tower.phi
+            phi_hist = (tower.B * tower.phi).sum(-1)
+            sources.loc[tower.wires_name, next_point] += phi_hist.reshape(-1)
+
+        for model_list in [OHLs, cables]:
+            for model in model_list:
+                I = current_result.loc[model.wires_name, 0].to_numpy()
+                n = int(I.shape[0] / model.A.shape[0])
+                phi_temp = []
+                for i_fit in range(model.A.shape[-1]):
+                    A = np.copy(model.A[:, :, i_fit])
+                    for i in range(n-1):
+                        A = block_diag(A, model.A[:, :, i_fit])
+                    phi_temp.append(A.dot(I))
+                phi = np.expand_dims(np.array(phi_temp), axis=2).transpose(1, 2, 0)
+                B = np.tile(model.B, (int(model.phi.shape[0]/model.B.shape[0]), 1, 1))
+                model.phi = phi + B * model.phi
+                phi_hist = (B * model.phi).sum(-1)
+                sources.loc[model.wires_name, next_point] = sources.loc[model.wires_name, next_point].values + phi_hist.reshape(-1)
 
 
 
