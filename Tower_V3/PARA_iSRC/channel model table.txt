@@ -1,4 +1,0 @@
-project,       H,   Lamda,   vcof  
-TL model,    0,0,0
-MTLL,          1, 0, 0
-MTLE,          0 ,1700,  2.46

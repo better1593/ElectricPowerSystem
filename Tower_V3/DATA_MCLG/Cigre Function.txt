@@ -1,2 +1,0 @@
-syms t
-i(t)=((t<= tn).* (A*t+B*(t^n)) + (t>tn) * (I1*exp(-(t-tn)/t1) - I2*exp(-(t-tn)/t2)))*(Ipi/Ipc)
