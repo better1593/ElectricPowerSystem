@@ -1,0 +1,518 @@
+{
+    "user_id": "02",
+    "case_id": 1,
+    "Tower": [
+        {
+            "name": "tower_1",
+            "Info": {
+                "position": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "tower_1",
+                "id": 1,
+                "type": 10,
+                "Vclass": "10kV",
+                "Theta": 0,
+                "mode_con": 0,
+                "mode_gnd": null,
+                "pole_height": 10.5,
+                "pole_head": "X01"
+            },
+            "Device": [
+                {
+                    "name": "insolator_Tower_1",
+                    "type": "insulator",
+                    "Lump": [
+                        {
+                            "Type": "swh",
+                            "name": "swh_Tower_1_1",
+                            "probe": null,
+                            "bran_name": "Y13_ins",
+                            "node1": "X05",
+                            "node2": "X08",
+                            "data_type": null,
+                            "value1": 1000000,
+                            "value2": null,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": "SWH01",
+                            "comments": null
+                        },
+                        {
+                            "Type": "swh",
+                            "name": "swh_Tower_1_2",
+                            "probe": null,
+                            "bran_name": "Y14_ins",
+                            "node1": "X06",
+                            "node2": "X10",
+                            "data_type": null,
+                            "value1": 1000001,
+                            "value2": null,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": "SWH01",
+                            "comments": null
+                        },
+                        {
+                            "Type": "swh",
+                            "name": "swh_Tower_1_3",
+                            "probe": null,
+                            "bran_name": "Y15_ins",
+                            "node1": "X07",
+                            "node2": "X11",
+                            "data_type": null,
+                            "value1": 1000002,
+                            "value2": null,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": "SWH01",
+                            "comments": null
+                        },
+                        {
+                            "Type": "GC",
+                            "name": "GC_Tower_1_1",
+                            "probe": null,
+                            "bran_name": "---",
+                            "node1": "X05",
+                            "node2": "X08",
+                            "data_type": null,
+                            "value1": 0,
+                            "value2": 1e-10,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": null,
+                            "comments": null
+                        },
+                        {
+                            "Type": "GC",
+                            "name": "GC_Tower_1_2",
+                            "probe": null,
+                            "bran_name": "---",
+                            "node1": "X06",
+                            "node2": "X10",
+                            "data_type": null,
+                            "value1": 0,
+                            "value2": 1e-10,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": null,
+                            "comments": null
+                        },
+                        {
+                            "Type": "GC",
+                            "name": "GC_Tower_1_3",
+                            "probe": null,
+                            "bran_name": "---",
+                            "node1": "X07",
+                            "node2": "X11",
+                            "data_type": null,
+                            "value1": 0,
+                            "value2": 1e-10,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": null,
+                            "comments": null
+                        },
+                        {
+                            "Type": "RL",
+                            "name": "RL_Tower_1_1",
+                            "probe": null,
+                            "bran_name": "Y_RL_tube_1",
+                            "node1": "X57",
+                            "node2": "X56",
+                            "data_type": null,
+                            "value1": 10000,
+                            "value2": 10000,
+                            "value3": null,
+                            "value4": null,
+                            "value5": null,
+                            "model": null,
+                            "comments": null
+                        }
+                    ]
+                }
+            ],
+            "ground": {
+                "glb": 1,
+                "sig": 0.01,
+                "mur": 1,
+                "epr": 10,
+                "gnd_model": 2,
+                "ionisation_intensity": "/",
+                "ionisation_model": "/"
+            },
+            "Wire": [
+                {
+                    "type": "air",
+                    "bran": "Y01",
+                    "node1": "X02",
+                    "node2": "X09",
+                    "oft": 0,
+                    "r0": 0.005,
+                    "rs2": null,
+                    "rs3": null,
+                    "r": 0,
+                    "l": 0,
+                    "sig": 58000000,
+                    "mur": 1,
+                    "epr": 1,
+                    "vfid_d": null,
+                    "vfid_h": null,
+                    "vfid_r": null,
+                    "vfid_a": null,
+                    "num": 1,
+                    "probe": 1,
+                    "待定": null,
+                    "Comments": null,
+                    "pos_1": [
+                        0,
+                        -0.4,
+                        10
+                    ],
+                    "pos_2": [
+                        0,
+                        -0.4,
+                        9.8
+                    ]
+                },
+                {
+                    "type": "tube",
+                    "sheath": {
+                        "bran": "Y10",
+                        "node1": "X52",
+                        "node2": "X56",
+                        "r": 0.0001,
+                        "l": 1e-07,
+                        "sig": 1000000,
+                        "mur": 50,
+                        "epr": 1,
+                        "vfid_d": null,
+                        "vfid_h": null,
+                        "vfid_r": null,
+                        "vfid_a": null,
+                        "num": 3,
+                        "probe": null,
+                        "待定": null,
+                        "Comments": null,
+                        "pos_1": [
+                            10,
+                            0,
+                            0
+                        ],
+                        "pos_2": [
+                            10,
+                            0,
+                            100
+                        ],
+                        "r0": 2.05,
+                        "rs1": 2,
+                        "rs3": 2.1,
+                        "type": "sheath",
+                        "oft": 2.05
+                    },
+                    "core": [
+                        {
+                            "bran": "Y11",
+                            "node1": "X53",
+                            "node2": "X57",
+                            "r": 0,
+                            "l": 0,
+                            "sig": 58000000,
+                            "mur": 1,
+                            "epr": 1,
+                            "vfid_d": null,
+                            "vfid_h": null,
+                            "vfid_r": null,
+                            "vfid_a": null,
+                            "num": null,
+                            "probe": null,
+                            "待定": null,
+                            "Comments": null,
+                            "pos_1": [
+                                10,
+                                0,
+                                0
+                            ],
+                            "pos_2": [
+                                10,
+                                0,
+                                100
+                            ],
+                            "oft": -5,
+                            "rc": 0.0087,
+                            "cita": -5,
+                            "type": "core"
+                        },
+                        {
+                            "bran": "Y12",
+                            "node1": "X54",
+                            "node2": "X58",
+                            "r": 0,
+                            "l": 0,
+                            "sig": 58000000,
+                            "mur": 1,
+                            "epr": 1,
+                            "vfid_d": null,
+                            "vfid_h": null,
+                            "vfid_r": null,
+                            "vfid_a": null,
+                            "num": null,
+                            "probe": null,
+                            "待定": null,
+                            "Comments": null,
+                            "pos_1": [
+                                10,
+                                0,
+                                0
+                            ],
+                            "pos_2": [
+                                10,
+                                0,
+                                100
+                            ],
+                            "oft": 0,
+                            "rc": 0.0087,
+                            "cita": 0,
+                            "type": "core"
+                        },
+                        {
+                            "bran": "Y13",
+                            "node1": "X55",
+                            "node2": "X59",
+                            "r": 0,
+                            "l": 0,
+                            "sig": 58000000,
+                            "mur": 1,
+                            "epr": 1,
+                            "vfid_d": null,
+                            "vfid_h": null,
+                            "vfid_r": null,
+                            "vfid_a": null,
+                            "num": null,
+                            "probe": null,
+                            "待定": null,
+                            "Comments": null,
+                            "pos_1": [
+                                10,
+                                0,
+                                0
+                            ],
+                            "pos_2": [
+                                10,
+                                0,
+                                100
+                            ],
+                            "oft": 5,
+                            "rc": 0.0087,
+                            "cita": 5,
+                            "type": "core"
+                        }
+                    ]
+                }
+            ],
+            "Lump": [
+                {
+                    "Type": "NLR",
+                    "name": "GRID",
+                    "probe": 1,
+                    "bran_name": "Y01",
+                    "node1": "X01",
+                    "node2": "X02",
+                    "data_type": null,
+                    "value1": 1e-09,
+                    "value2": 1e-12,
+                    "value3": "/",
+                    "value4": "I1,U2;I2,U2;I3;U3",
+                    "value5": null,
+                    "pointer": null,
+                    "Comments": "Nonlinear resistor"
+                }
+            ]
+        }
+    ],
+    "OHL": [
+        {
+            "Info": {
+                "name": "Overheadline No. 1",
+                "id": 1,
+                "type": "Type-01",
+                "dL": 10,
+                "model1": 0,
+                "model2": 0,
+                "Tower_head": "Tower No. 1",
+                "Tower_head_id": 1,
+                "Tower_tail": "Tower No. 2",
+                "Tower_tail_id": 2,
+                "Tower_head_pos": [
+                    0,
+                    0,
+                    0
+                ],
+                "Tower_tail_pos": [
+                    100,
+                    0,
+                    0
+                ]
+            },
+            "name": "Overheadline No. 1",
+            "Wire": [
+                {
+                    "type": "CIRO",
+                    "bran": "---",
+                    "node1": "X31",
+                    "node2": "X32",
+                    "offset": 0,
+                    "r0": null,
+                    "r": 0.005,
+                    "l": 0,
+                    "sig": 0,
+                    "mur": 1,
+                    "epr": 58000000,
+                    "vfid_d": null,
+                    "vfid_h": null,
+                    "vfid_r": null,
+                    "vfid_a": null,
+                    "num": 1,
+                    "cir_id": 1001,
+                    "phase": "A",
+                    "phase_num": 1,
+                    "mode1": null,
+                    "model2": null,
+                    "Comments": "长线-SW",
+                    "node1_pos": [
+                        0,
+                        0,
+                        10.5
+                    ],
+                    "node2_pos": [
+                        0,
+                        -0.4,
+                        10.5
+                    ]
+                },
+                {
+                    "type": "CIRO",
+                    "bran": "---",
+                    "node1": "X31",
+                    "node2": "X32",
+                    "offset": -0.4,
+                    "r0": null,
+                    "r": 0.005,
+                    "l": 0,
+                    "sig": 0,
+                    "mur": 1,
+                    "epr": 58000000,
+                    "vfid_d": null,
+                    "vfid_h": null,
+                    "vfid_r": null,
+                    "vfid_a": null,
+                    "num": 3,
+                    "cir_id": 3001,
+                    "phase": "A",
+                    "phase_num": 3,
+                    "mode1": null,
+                    "model2": null,
+                    "Comments": "长线-Phase A",
+                    "node1_pos": [
+                        0,
+                        -0.4,
+                        10
+                    ],
+                    "node2_pos": [
+                        0,
+                        -0.4,
+                        10
+                    ]
+                },
+                {
+                    "type": null,
+                    "bran": "---",
+                    "node1": "X31",
+                    "node2": "X32",
+                    "offset": 0.1,
+                    "r0": null,
+                    "r": 0.005,
+                    "l": 0,
+                    "sig": 0,
+                    "mur": 1,
+                    "epr": 58000000,
+                    "vfid_d": null,
+                    "vfid_h": null,
+                    "vfid_r": null,
+                    "vfid_a": null,
+                    "num": null,
+                    "cir_id": "---",
+                    "phase": "B",
+                    "phase_num": "---",
+                    "mode1": null,
+                    "model2": null,
+                    "Comments": "长线- Phase B",
+                    "node1_pos": [
+                        0,
+                        0.1,
+                        10
+                    ],
+                    "node2_pos": [
+                        0,
+                        0.1,
+                        10
+                    ]
+                },
+                {
+                    "type": null,
+                    "bran": "---",
+                    "node1": "X31",
+                    "node2": "X32",
+                    "offset": 0.6,
+                    "r0": null,
+                    "r": 0.005,
+                    "l": 0,
+                    "sig": 0,
+                    "mur": 1,
+                    "epr": 58000000,
+                    "vfid_d": null,
+                    "vfid_h": null,
+                    "vfid_r": null,
+                    "vfid_a": null,
+                    "num": null,
+                    "cir_id": "---",
+                    "phase": "C",
+                    "phase_num": "---",
+                    "mode1": null,
+                    "model2": null,
+                    "Comments": "长线-Phase C",
+                    "node1_pos": [
+                        0,
+                        0.6,
+                        10
+                    ],
+                    "node2_pos": [
+                        0,
+                        0.6,
+                        10
+                    ]
+                }
+            ],
+            "ground": {
+                "glb": 1,
+                "sig": 0.01,
+                "mur": 1,
+                "epr": 10,
+                "gnd_model": 2,
+                "ionisation_intensity": "/",
+                "ionisation_model": null
+            }
+        }
+    ],
+    "Source": [
+        "../input/case1/Source_Input.xlsx"
+    ]
+}
