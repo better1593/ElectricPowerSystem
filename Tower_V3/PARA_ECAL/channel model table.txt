@@ -1,0 +1,4 @@
+project       H   Lamda   vcof  
+TL model,    0,0,2.3077
+MTLL,          7000, 0, 2.3077
+MTLE,          0 ,1700,  2.3077
