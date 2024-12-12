@@ -126,7 +126,7 @@ def FRPY(SER, s, s2, s3, RPopts):
             D, V = sort_eigenvalues_eigenvectors_to_match_matlab(D, V)
 
             bigV[:Nc, m * Nc:(m + 1) * Nc] = V.real.copy()
-            biginvV[:Nc, m * Nc:(m + 1) * Nc] = np.linalg.matrix_power(V.real, -1)
+            biginvV[:Nc, m * Nc:(m + 1) * Nc] = np.linalg.inv(V.real)
             bigD[:, m] = D.real
 
         for k in range(Ns):
@@ -292,7 +292,7 @@ def create_eig_n(SER):
         Dflag = 1 # Will perturb D-matrix (done later)
         eigD, VD = LA.eig(SER)
         eigD, VD = sort_eigenvalues_eigenvectors_to_match_matlab(eigD, VD)
-        invVD = np.linalg.matrix_power(VD, -1)
+        invVD = np.linalg.inv(VD)
         eigD = np.diag(eigD)
     else:               # Passivity condition met so we don't have to worry about this in the future
         Dflag = 0
@@ -349,11 +349,9 @@ def fill_in_bigA(N, bigV, Nc, sk, cindex, SERA, weight, Dflag, Eflag, VD, invVD,
     if Dflag:
         Mmat = create_Mmat_from_VD_invVD(Nc, VD, invVD, weight, Mmat, offs)
     if Eflag:
-        Mmat = create_Mmat_from_VD_invVD(Nc, VE, invVE, weight, Mmat, offs)
+        Mmat = create_Mmat_from_VE_invVE(Nc, VE, invVE, weight, Mmat, offs, sk, Dflag)
 
     if bigA2.shape[0] > 0:
-        if Eflag:
-            Mmat = create_Mmat_from_VD_invVD(Nc, VD, invVD, weight, Mmat, offs)
         bigA2[k * Nc2:(k + 1) * Nc2, :] = Mmat
     else:
         bigA[k * Nc2:(k + 1) * Nc2, :] = Mmat
@@ -361,15 +359,30 @@ def fill_in_bigA(N, bigV, Nc, sk, cindex, SERA, weight, Dflag, Eflag, VD, invVD,
     return bigA, bigA2
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def create_Mmat_from_VD_invVD(Nc, VD, invVD, weight, Mmat, offs):
     for eigenverdi in range(Nc):
-        gamm = (VD[:, eigenverdi]).reshape(-1, 1) @ (invVD[eigenverdi, :]).reshape(1, -1)
+        tmp1_contiguous = np.array(VD[:, eigenverdi]).copy()
+        tmp2_contiguous = np.array(invVD[eigenverdi, :]).copy()
+        gamm = tmp1_contiguous.reshape(-1, 1) @ tmp2_contiguous.reshape(1, -1)
         tell = 0
         for row in range(Nc):
             for col in range(Nc):
                 faktor = weight[row, col]
                 Mmat[tell, offs + eigenverdi] = gamm[row, col] * faktor
+                tell = tell + 1
+    return Mmat
+
+def create_Mmat_from_VE_invVE(Nc, VE, invVE, weight, Mmat, offs, sk, Dflag):
+    for eigenverdi in range(Nc):
+        tmp1_contiguous = np.array(VE[:, eigenverdi]).copy()
+        tmp2_contiguous = np.array(invVE[eigenverdi, :]).copy()
+        gamm = tmp1_contiguous.reshape(-1, 1) @ tmp2_contiguous.reshape(1, -1)
+        tell = 0
+        for row in range(Nc):
+            for col in range(Nc):
+                faktor = weight[row, col]
+                Mmat[tell, offs + Dflag * Nc + eigenverdi] = gamm[row, col] * sk * faktor
                 tell = tell + 1
     return Mmat
 

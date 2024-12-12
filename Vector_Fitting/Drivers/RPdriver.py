@@ -130,6 +130,9 @@ class RPdriver:
             bigYfit: The fit with the newly generated state space model
             self.options: Saves off the options used in generating the state space model
         """
+        SER['D'] = SER['D'].reshape((1, -1)) if SER['D'].ndim == 1 else SER['D']
+        SER['E'] = SER['E'].reshape((1, -1)) if SER['E'].ndim == 1 else SER['E']
+
         SER = pr2ss(SER)
         print("Starting!")
         colinterch = self.options['colinterch']
@@ -215,6 +218,7 @@ class RPdriver:
                         eigenvalsD, eigenvectors = LA.eig(SER1['D'].reshape((1, -1)) if SER1['D'].ndim == 1 else SER1['D'])
                         eigenvalsE, eigenvectors = LA.eig(SER1['E'].reshape((1, -1)) if SER1['E'].ndim == 1 else SER1['E'])
                         if not np.any(wintervals) and np.all(eigenvalsD >= 0) and np.all(eigenvalsE >= 0):
+                        # if not np.any(wintervals):
                             # If there are no violations, break out of the loop here. SER0 = SER1 indicates no violations
                             SER0 = SER1
                             break_outer = True
@@ -227,15 +231,17 @@ class RPdriver:
                         s_viol, g_pass, ss = violextremaY(wintervals.T, SER['poles'], SER1['R'], SER1['D'], colinterch)
                         s2 = s_viol.T.copy()
                         s2 = np.sort(s2) # s2 is the frequency at which the minimum occurs
-                        if s2.shape[0] == 0 and np.all(LA.eig(SER1['D']) > 0):
+                        if s2.shape[0] == 0 and np.all((SER1['D'].reshape((1, -1)) if SER1['D'].ndim == 1 else SER1['D']) > 0):
                             break
                     elif self.options['parametertype'] == ParameterType.s:
                         print("Option S Parameter type not currenlty supported!")
 
                     if self.options['outputlevel'] == OutputLevel.max:
-                        self.print_max_violation_for_SER_eig(SER0, SER1, g_pass, ss)
+                        a = 0
+                        # self.print_max_violation_for_SER_eig(SER0, SER1, g_pass, ss)
                     if self.options['outputlevel'] != OutputLevel.max:
-                        self.print_eigenvalue_violations(SER0, SER1, g_pass)
+                        a = 0
+                        # self.print_eigenvalue_violations(SER0, SER1, g_pass)
 
                 if self.options['outputlevel'] == OutputLevel.max:
                     print(" Passivity Enforcement ...")

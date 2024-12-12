@@ -14,7 +14,7 @@ class StrokeParameters:
 
     HEIDLER_PARAMETERS = {
         '0.25/100us': [0.9, 0.25, 100, 2],
-        '0.25/2.5us': [10.7, 0.25, 2.5, 2],
+        '0.25/2.5us': [10.7e3, 0.25, 2.5, 2],
         '8/20us': [30.85, 8, 20, 2.4],
         '2.6/50us': [10e5, 2.6, 50, 2.1],
         '10/350us': [44.43, 10, 350, 2.1]
@@ -101,8 +101,8 @@ class Stroke:
         Ip, tau1, tau2, n = self.parameters
         tau1 = tau1 * 1.0e-06
         tau2 = tau2 * 1.0e-06
-        # eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
-        eta = 1
+        eta = math.exp(-(tau1 / tau2) * ((n * tau2 / tau1) ** (1 / n)))
+        # eta = 1
         Iout = ((Ip / eta) * ((t / tau1) ** n) / (1 + (t / tau1) ** n)) * np.exp(-t / tau2)
 
         return Iout
@@ -183,7 +183,7 @@ class Lightning:
 
 
 if __name__ == '__main__':
-    stroke1 = Stroke('Heidler', duration=2.0e-5, dt=1.0e-8, is_calculated=True, parameter_set='2.6/50us',
+    stroke1 = Stroke('Heidler', duration=2.0e-5, dt=1.0e-8, is_calculated=True, parameter_set='0.25/2.5us',
                     parameters=None)
     # stroke2 = Stroke('Heidler', duration=1e-3, is_calculated=True, parameter_set='2.6/50us',
     #                 parameters=None)

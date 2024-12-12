@@ -2,6 +2,7 @@ import numpy as np
 import warnings
 from Vector_Fitting.Drivers.RPdriver import RPdriver
 from Vector_Fitting.Drivers.VFdriver import VFdriver
+from Vector_Fitting.Calculators.plots import plot_figure_11
 import scipy.io
 # 40 41行修改
 def vecfit_kernel_Z_Ding(Zi, f0, Nfit, vf_mod=None):
@@ -31,22 +32,36 @@ def vecfit_kernel_Z_Ding(Zi, f0, Nfit, vf_mod=None):
                          weightparam='common_1',
                          Niter1=10,
                          Niter2=5,
-                         asymp='DE',
+                         asymp='DE' if vf_mod is None else vf_mod,
                          plot=False
                          )
-    SER, *_ = vf_driver.vfdriver(Zi, s, poles)
+    SER, _, Zfit = vf_driver.vfdriver(Zi, s, poles)
+    # 绘制误差曲线
+    diff2 = Zfit - Zi
+    error2 = np.sqrt(np.sum(np.abs(diff2 ** 2), axis=2))
+    plot_figure_11(s, Zi, Zfit, SER)
 
     # Passivity Enforcement
     rp_driver = RPdriver(parametertype='y',
-                         Niter_in=5,
+                         # TOLGD=1e-3,
+                         # Niter_out=20,
+                         Niter_in=10,
+                         # weightfactor=0.01,
+                         # complx_ss=False,
+                         # WeightParam='indiv_sqrt',
                          plot=False
                          # s_pass=2*np.pi*1j*np.linspace(0, 2e5, 1001).T,
                          # ylim=np.array((-2e-3, 2e-3))
                          )
     SER, Zfit, *_ = rp_driver.rpdriver(SER, s)
 
+    # 被动性抑制后再次绘制误差
+    diff = Zfit - Zi
+    error = np.sqrt(np.sum(np.abs(diff ** 2), axis=2))
+    plot_figure_11(s, Zi, Zfit, SER)
+
     R0 = np.real(SER['D'])  # 只取实部
-    L0 = np.real(SER['E'])  # 只取实部
+    L0 = np.real(SER['E']) if vf_mod is None else None  # 只取实部
 
     Nc = Zi.shape[0]
     Ln = np.zeros((Nc, Nc, VFopts['N']))

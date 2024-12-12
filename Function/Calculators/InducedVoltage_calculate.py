@@ -8,6 +8,7 @@ from Utils.Math import calculate_H_magnetic_field_down_r
 from Utils.Math import calculate_electric_field_down_r_and_z
 import pandas as pd
 import math
+from numba import njit
 
 def distance(node1, node2):
     return math.sqrt((node1.x - node2[0]) ** 2 +
@@ -163,7 +164,6 @@ def ElectricField_calculate(pt_start, pt_end, stroke: Stroke, channel, ep0, vc):
 
     return Ez_T, Er_T
 
-
 def H_MagneticField_calculate(pt_start, pt_end, stroke, channel, ep0, vc):
     # # 常数初始化
     # ep0 = constants.ep0, vc = constants.vc
@@ -213,7 +213,7 @@ def H_MagneticField_calculate(pt_start, pt_end, stroke, channel, ep0, vc):
     return H_p
 
 
-def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
+def  ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
     erg = constants.epr
     sigma_g = constants.sigma
     if sigma0 is not None:
@@ -278,8 +278,7 @@ def ElectricField_above_lossy(HR0, ER,  constants: Constant, sigma0=None):
     ee_conv = np.zeros((shape0_after_convolution, shape1_after_convolution, Nd))  # 预先定义卷积后矩阵大小，因为H_save2和ee矩阵大小已知
     for jj in range(Nd):
         tmp = convolve2d(H_save2, ee[:, [jj]].T, mode='full', boundary='fill')
-        ee_conv[:, :, jj] = dt0 * convolve2d(H_save2, ee[:, [jj]].T, mode='full', boundary='fill')
-
+    ee_conv[:, :, jj] = dt0 * convolve2d(H_save2, ee[:, [jj]].T, mode='full', boundary='fill')
     ee_conv_sum = np.sum(ee_conv, axis=2)
     ee_all = ee0[:, :Ntt:conv_2] + eeL[:, :Ntt:conv_2] + ee_conv_sum[:, :Ntt:conv_2]
     Er_lossy = ER + ee_all.T

@@ -23,14 +23,15 @@ def plot_figure_11(s, bigYfit, bigYfit_passive, SER):
     plt.rcParams['grid.color'] = 'gray'
     plt.rcParams['grid.linestyle'] = 'dotted'
 
-    fig = plt.figure(11, figsize=(8, 7))
-    ax = fig.add_subplot(1, 1, 1)
+
     freq = (s / (2 * np.pi * 1j)).real
     Ns = freq.shape[0]
 
     Nc = SER['D'].shape[0]
     for row in range(Nc):
         for col in range(Nc):
+            fig = plt.figure(11, figsize=(8, 7))
+            ax = fig.add_subplot(1, 1, 1)
             dum1 = bigYfit[row, col, :]
             dum2 = bigYfit_passive[row, col, :]
             ax.plot(freq, np.abs(dum1), color='b', linewidth=1, label='Original')
@@ -38,6 +39,7 @@ def plot_figure_11(s, bigYfit, bigYfit_passive, SER):
             diff = dum2 - dum1
             ax.plot(freq, np.abs(diff), color='g', linewidth=1, label='Difference')
 
+            plt.xscale('log')
             plt.xlabel('Frequency [Hz]')
             plt.ylabel('Admittance')
             plt.title("Model Comparison")
@@ -46,7 +48,9 @@ def plot_figure_11(s, bigYfit, bigYfit_passive, SER):
             plt.tight_layout()
             plt.savefig(f'model_comparison_{row},{col}')
             print(f"RMS error Y{row+1}{col+1}: {np.sqrt(np.sum(np.abs(diff ** 2))) / np.sqrt(Ns)}")
-    plt.show()
+            plt.show()
+            plt.clf()
+            plt.close()
     return
 
 def plot_figure_11_individual(s, bigYfit, bigYfit_passive, Nc, name1, name2, example_name):
